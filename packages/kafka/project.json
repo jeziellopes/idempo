@@ -1,0 +1,20 @@
+{
+  "name": "@idempo/kafka",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/kafka",
+        "main": "packages/kafka/src/index.ts",
+        "tsConfig": "packages/kafka/tsconfig.json"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p packages/kafka/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:shared"]
+}
