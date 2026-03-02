@@ -1,0 +1,32 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@idempo/contracts": ["packages/contracts/src/index.ts"],
+      "@idempo/kafka": ["packages/kafka/src/index.ts"],
+      "@idempo/idempotency": ["packages/idempotency/src/index.ts"],
+      "@idempo/observability": ["packages/observability/src/index.ts"],
+      "@idempo/circuit-breaker": ["packages/circuit-breaker/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "game-service",
+  "targets": {
+    "build": {
+      "executor": "@nx/node:build",
+      "options": {
+        "outputPath": "dist/apps/game-service",
+        "main": "apps/game-service/src/main.ts",
+        "tsConfig": "apps/game-service/tsconfig.json",
+        "assets": []
+      }
+    },
+    "serve": {
+      "executor": "@nx/node:node",
+      "options": {
+        "buildTarget": "game-service:build"
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": {
+        "configFile": "apps/game-service/vite.config.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/game-service/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:app"]
+}

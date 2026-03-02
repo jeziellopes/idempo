@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Nx
+.nx/cache
+.nx/workspace-data
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs
+
+# Coverage
+coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+*.iml
+
+# Docker volumes (local data)
+infra/data/

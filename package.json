@@ -1,0 +1,45 @@
+{
+  "name": "idempo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Production-grade distributed systems reference built as a real-time tactical arena game",
+  "scripts": {
+    "build": "nx run-many --target=build --all",
+    "test": "nx run-many --target=test --all",
+    "lint": "nx run-many --target=lint --all",
+    "typecheck": "nx run-many --target=typecheck --all",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down -v",
+    "docker:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@nx/eslint": "^22.5.3",
+    "@nx/js": "^22.5.3",
+    "@nx/nest": "^22.5.3",
+    "@nx/next": "^22.5.3",
+    "@nx/node": "^22.5.3",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.15.18",
+    "@swc/helpers": "~0.5.15",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "nx": "^22.5.3",
+    "prettier": "^3.5.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["@swc/core", "nx", "@nestjs/core"]
+  }
+}
