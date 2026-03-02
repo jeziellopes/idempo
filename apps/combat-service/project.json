@@ -1,0 +1,28 @@
+{
+  "name": "combat-service",
+  "targets": {
+    "build": {
+      "executor": "@nx/node:build",
+      "options": {
+        "outputPath": "dist/apps/combat-service",
+        "main": "apps/combat-service/src/main.ts",
+        "tsConfig": "apps/combat-service/tsconfig.json",
+        "assets": []
+      }
+    },
+    "serve": {
+      "executor": "@nx/node:node",
+      "options": { "buildTarget": "combat-service:build" }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": { "configFile": "apps/combat-service/vite.config.ts" }
+    },
+    "lint": { "executor": "@nx/eslint:lint" },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc --noEmit -p apps/combat-service/tsconfig.json" }
+    }
+  },
+  "tags": ["scope:app"]
+}
