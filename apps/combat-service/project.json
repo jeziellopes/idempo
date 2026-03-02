@@ -15,8 +15,8 @@
       "options": { "buildTarget": "combat-service:build" }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "options": { "configFile": "apps/combat-service/vite.config.ts" }
+      "executor": "@nx/vitest:test",
+      "options": { "configFile": "apps/combat-service/vitest.config.ts", "passWithNoTests": true }
     },
     "lint": { "executor": "@nx/eslint:lint" },
     "typecheck": {

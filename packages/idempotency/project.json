@@ -2,9 +2,10 @@
   "name": "@idempo/idempotency",
   "targets": {
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "@nx/vitest:test",
       "options": {
-        "configFile": "packages/idempotency/vite.config.ts"
+        "configFile": "packages/idempotency/vitest.config.ts",
+        "passWithNoTests": true
       }
     },
     "build": {

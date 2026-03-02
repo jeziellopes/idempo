@@ -17,9 +17,10 @@
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "@nx/vitest:test",
       "options": {
-        "configFile": "apps/api-gateway/vite.config.ts"
+        "configFile": "apps/api-gateway/vitest.config.ts",
+        "passWithNoTests": true
       }
     },
     "lint": {
