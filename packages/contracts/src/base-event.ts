@@ -3,6 +3,8 @@
  * Provides the tracing/idempotency fields used across all consumers.
  */
 export interface BaseEvent {
+  /** Discriminated union tag — every concrete event sets this to its class name */
+  type: string;
   /** UUID v4 — globally unique per event emission */
   eventId: string;
   /** Tracks the full request chain for distributed tracing */
