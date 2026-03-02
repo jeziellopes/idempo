@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-arena-bg: #0f1117;
+  --color-arena-tile: #1a1f2e;
+  --color-arena-wall: #374151;
+  --color-arena-resource: #10b981;
+  --color-player-hp-high: #22c55e;
+  --color-player-hp-low: #ef4444;
+  --color-stamp: #f59e0b;
+  --font-mono: ui-monospace, 'Fira Code', monospace;
+}
+
+:root {
+  --background: #0f1117;
+  --foreground: #e2e8f0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+}
