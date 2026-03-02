@@ -1,0 +1,53 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: api-gateway
+    static_configs:
+      - targets: ["host.docker.internal:3001"]
+    metrics_path: /metrics
+
+  - job_name: game-service
+    static_configs:
+      - targets: ["host.docker.internal:3002"]
+    metrics_path: /metrics
+
+  - job_name: combat-service
+    static_configs:
+      - targets: ["host.docker.internal:3003"]
+    metrics_path: /metrics
+
+  - job_name: reward-service
+    static_configs:
+      - targets: ["host.docker.internal:3004"]
+    metrics_path: /metrics
+
+  - job_name: wallet-service
+    static_configs:
+      - targets: ["host.docker.internal:3005"]
+    metrics_path: /metrics
+
+  - job_name: inventory-service
+    static_configs:
+      - targets: ["host.docker.internal:3006"]
+    metrics_path: /metrics
+
+  - job_name: marketplace-service
+    static_configs:
+      - targets: ["host.docker.internal:3007"]
+    metrics_path: /metrics
+
+  - job_name: leaderboard-service
+    static_configs:
+      - targets: ["host.docker.internal:3008"]
+    metrics_path: /metrics
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ["host.docker.internal:3009"]
+    metrics_path: /metrics
