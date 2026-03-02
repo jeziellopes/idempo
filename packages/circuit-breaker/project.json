@@ -1,0 +1,20 @@
+{
+  "name": "@idempo/circuit-breaker",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/circuit-breaker",
+        "main": "packages/circuit-breaker/src/index.ts",
+        "tsConfig": "packages/circuit-breaker/tsconfig.json"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p packages/circuit-breaker/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:shared"]
+}
