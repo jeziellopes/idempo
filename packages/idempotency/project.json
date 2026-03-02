@@ -1,0 +1,26 @@
+{
+  "name": "@idempo/idempotency",
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": {
+        "configFile": "packages/idempotency/vite.config.ts"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/idempotency",
+        "main": "packages/idempotency/src/index.ts",
+        "tsConfig": "packages/idempotency/tsconfig.json"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p packages/idempotency/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:shared"]
+}
