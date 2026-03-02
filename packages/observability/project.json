@@ -1,0 +1,20 @@
+{
+  "name": "@idempo/observability",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/observability",
+        "main": "packages/observability/src/index.ts",
+        "tsConfig": "packages/observability/tsconfig.json"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p packages/observability/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:shared"]
+}
