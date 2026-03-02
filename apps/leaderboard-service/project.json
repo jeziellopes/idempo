@@ -1,0 +1,28 @@
+{
+  "name": "leaderboard-service",
+  "targets": {
+    "build": {
+      "executor": "@nx/node:build",
+      "options": {
+        "outputPath": "dist/apps/leaderboard-service",
+        "main": "apps/leaderboard-service/src/main.ts",
+        "tsConfig": "apps/leaderboard-service/tsconfig.json",
+        "assets": []
+      }
+    },
+    "serve": {
+      "executor": "@nx/node:node",
+      "options": { "buildTarget": "leaderboard-service:build" }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "options": { "configFile": "apps/leaderboard-service/vite.config.ts" }
+    },
+    "lint": { "executor": "@nx/eslint:lint" },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc --noEmit -p apps/leaderboard-service/tsconfig.json" }
+    }
+  },
+  "tags": ["scope:app"]
+}
