@@ -1,0 +1,241 @@
+name: idempo
+
+# ─── Networks ────────────────────────────────────────────────────────────────
+networks:
+  idempo:
+    driver: bridge
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  kafka_data:
+  game_db_data:
+  wallet_db_data:
+  marketplace_db_data:
+  inventory_db_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+# ─── Services ────────────────────────────────────────────────────────────────
+services:
+
+  # ── Apache Kafka (KRaft mode — no ZooKeeper) ───────────────────────────────
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: idempo-kafka
+    ports:
+      - "9092:9092"    # external (host) access
+      - "9093:9093"    # controller
+    environment:
+      # KRaft settings
+      KAFKA_CFG_NODE_ID: "1"
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Listeners
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Topics
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_NUM_PARTITIONS: "3"
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: "1"
+      # Log retention
+      KAFKA_CFG_LOG_RETENTION_HOURS: "168"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Kafka topic initialiser (runs once, then exits) ────────────────────────
+  kafka-init:
+    image: bitnami/kafka:3.9
+    container_name: idempo-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      for topic in player-actions match-events economy-events leaderboard-events \
+                   player-actions.dlq match-events.dlq economy-events.dlq; do
+        kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
+          --topic $$topic --partitions 3 --replication-factor 1
+        echo \"Topic ready: $$topic\"
+      done
+      "
+    networks:
+      - idempo
+    restart: "no"
+
+  # ── PostgreSQL — game_db ───────────────────────────────────────────────────
+  game-db:
+    image: postgres:17-alpine
+    container_name: idempo-game-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: game_db
+      POSTGRES_USER: idempo
+      POSTGRES_PASSWORD: idempo
+    volumes:
+      - game_db_data:/var/lib/postgresql/data
+      - ./infra/db/game_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idempo -d game_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL — wallet_db ─────────────────────────────────────────────────
+  wallet-db:
+    image: postgres:17-alpine
+    container_name: idempo-wallet-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: wallet_db
+      POSTGRES_USER: idempo
+      POSTGRES_PASSWORD: idempo
+    volumes:
+      - wallet_db_data:/var/lib/postgresql/data
+      - ./infra/db/wallet_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idempo -d wallet_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL — marketplace_db ────────────────────────────────────────────
+  marketplace-db:
+    image: postgres:17-alpine
+    container_name: idempo-marketplace-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: idempo
+      POSTGRES_PASSWORD: idempo
+    volumes:
+      - marketplace_db_data:/var/lib/postgresql/data
+      - ./infra/db/marketplace_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idempo -d marketplace_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL — inventory_db ──────────────────────────────────────────────
+  inventory-db:
+    image: postgres:17-alpine
+    container_name: idempo-inventory-db
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: idempo
+      POSTGRES_PASSWORD: idempo
+    volumes:
+      - inventory_db_data:/var/lib/postgresql/data
+      - ./infra/db/inventory_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idempo -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7.4 LTS ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.4-alpine
+    container_name: idempo-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Jaeger (distributed tracing) ──────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.63
+    container_name: idempo-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector (legacy)
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP (services send traces here)
+      - "6831:6831/udp"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - idempo
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: idempo-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - idempo
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: idempo-grafana
+    ports:
+      - "3100:3000"  # 3100 on host to avoid clash with Next.js dev server
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: idempo
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - idempo
+
+  # ── Loki (log aggregation) ─────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.3.0
+    container_name: idempo-loki
+    ports:
+      - "3200:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    networks:
+      - idempo
