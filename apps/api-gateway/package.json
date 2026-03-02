@@ -1,0 +1,41 @@
+{
+  "name": "@idempo/api-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nx serve api-gateway",
+    "build": "nx build api-gateway",
+    "test": "nx test api-gateway",
+    "lint": "nx lint api-gateway"
+  },
+  "dependencies": {
+    "@idempo/observability": "workspace:*",
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.1.14",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^11.1.14",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.14",
+    "@nestjs/platform-socket.io": "^11.1.14",
+    "@nestjs/terminus": "^11.1.1",
+    "@nestjs/throttler": "^6.4.0",
+    "@nestjs/websockets": "^11.1.14",
+    "axios": "^1.13.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "http-proxy-middleware": "^3.0.5",
+    "joi": "^18.0.2",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/uuid": "^10.0.0"
+  }
+}
