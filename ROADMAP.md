@@ -20,27 +20,29 @@ flowchart LR
 
 **Shared Packages**
 
-- [ ] `packages/contracts` — `BaseEvent` envelope + all event types
-- [ ] `packages/kafka` — base producer, base consumer, idempotency hook, DLQ routing
-- [ ] `packages/observability` — OpenTelemetry setup, Pino logger, `/metrics` NestJS module
-- [ ] `packages/idempotency` — `X-Idempotency-Key` NestJS interceptor
-- [ ] `packages/circuit-breaker` — `opossum` wrapper with Prometheus gauge export
+- [x] `packages/contracts` — `BaseEvent` envelope + all event types
+- [x] `packages/kafka` — base producer, base consumer, idempotency hook, DLQ routing
+- [x] `packages/observability` — OpenTelemetry setup, Pino logger, `/metrics` NestJS module
+- [x] `packages/idempotency` — `X-Idempotency-Key` NestJS interceptor
+- [x] `packages/circuit-breaker` — `opossum` wrapper with Prometheus gauge export
 
 **Infrastructure**
 
-- [ ] Monorepo scaffold with Nx + pnpm workspaces
-- [ ] `docker-compose.yml` — Kafka, PostgreSQL ×4, Redis, Jaeger, Prometheus, Grafana
-- [ ] `apps/api-gateway`
-  - [ ] `ConfigModule` + Joi env schema (fail-fast on missing `JWT_SECRET`)
-  - [ ] `ThrottlerGuard` registered as `APP_GUARD` (rate limiting currently inert)
-  - [ ] Global `ValidationPipe` + `GlobalExceptionFilter` → `{ error, detail, correlationId }`
-  - [ ] `LoginDto` as validated class (`class-validator`)
-  - [ ] JWT expiry 15 min; `POST /auth/refresh` stub (501)
-  - [ ] `GET /health` (`@nestjs/terminus`)
-  - [ ] `ProxyModule` — `http-proxy-middleware` wildcard forwarding to downstream services
-  - [ ] `/metrics` moved to internal port 9091
+- [x] Monorepo scaffold with Nx + pnpm workspaces
+- [x] `docker-compose.yml` — Kafka, PostgreSQL ×4, Redis, Jaeger, Prometheus, Grafana
+- [x] `apps/api-gateway`
+  - [x] `ConfigModule` + Joi env schema (fail-fast on missing `JWT_SECRET`)
+  - [x] `ThrottlerGuard` registered as `APP_GUARD` (rate limiting currently inert)
+  - [x] Global `ValidationPipe` + `GlobalExceptionFilter` → `{ error, detail, correlationId }`
+  - [x] `LoginDto` as validated class (`class-validator`)
+  - [x] JWT expiry 15 min; `POST /auth/refresh` stub (501)
+  - [x] `GET /health` (`@nestjs/terminus`)
+  - [x] `ProxyModule` — `http-proxy-middleware` wildcard forwarding to downstream services
+  - [x] `/metrics` moved to internal port 9091
 
 **Output:** `nx generate @idempo/service <name>` scaffolds a fully wired NestJS service — Kafka, observability, idempotency, circuit breaker all included.
+
+**Coverage gate:** ≥80% lines/branches/functions on `api-gateway`. 100% on `src/filters/global-exception.filter.ts` and `src/auth/auth.controller.ts` (core request-handling logic). Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
 ---
 
@@ -51,13 +53,15 @@ flowchart LR
 **Services added:** Game Service · Combat Service · Leaderboard Service  
 **Frontend added:** Arena UI (WebSocket match view + live leaderboard)
 
-- [ ] Game Service — match lifecycle, player action validation, `UNIQUE(action_id)` idempotency, Stamp-sealed action flow
-- [ ] Combat Service — damage calc consumer, `PlayerAttackedEvent` emission
-- [ ] Leaderboard Service — score projection (CQRS), Redis top-100 cache, stale fallback
-- [ ] Next.js arena UI — join match, real-time grid, live leaderboard, Stamp spend UI
+- [x] Game Service — match lifecycle, player action validation, `UNIQUE(action_id)` idempotency, Stamp-sealed action flow
+- [x] Combat Service — damage calc consumer, `PlayerAttackedEvent` emission
+- [x] Leaderboard Service — score projection (CQRS), Redis top-100 cache, stale fallback
+- [x] Next.js arena UI — join match, real-time grid, live leaderboard, Stamp spend UI
 
 **Patterns live:** Idempotent HTTP commands · idempo Stamp mechanic · Event-driven services · CQRS read model · Partition-based ordering  
 **Game state:** ✅ Matches run · ✅ Leaderboard updates · ❌ No rewards yet
+
+**Coverage gate:** 100% lines/branches/functions on `match.service.ts`, `match.repository.ts`, `combat-engine.service.ts`, `leaderboard.service.ts`, `leaderboard.repository.ts` (core game logic). ≥80% on all other files in game-service, combat-service, and leaderboard-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
 ---
 
@@ -75,6 +79,8 @@ flowchart LR
 
 **Patterns live:** Idempotent event consumers · Append-only ledger · Optimistic locking  
 **Game state:** ✅ Matches run · ✅ Rewards granted exactly once · ✅ Balances visible · ❌ No trading yet
+
+**Coverage gate:** 100% on `reward.service.ts`, `wallet.service.ts`, `wallet.repository.ts`, `inventory.service.ts` (ledger and reward core logic). ≥80% on all other files in reward-service, wallet-service, and inventory-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
 ---
 
@@ -96,6 +102,8 @@ flowchart LR
 **Patterns live:** Distributed Saga · Saga compensation · Circuit breaker · Retry + backoff + jitter · DLQ  
 **Game state:** ✅ Full game loop · ✅ Trades complete atomically · ✅ Failed trades compensate automatically
 
+**Coverage gate:** 100% on `trade.saga.ts`, `marketplace.service.ts`, `saga-log.repository.ts` (saga orchestration and compensation logic). ≥80% on all other files in marketplace-service and notification-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
+
 ---
 
 ## Iteration 4 — Observability & Production Hardening
@@ -111,6 +119,8 @@ flowchart LR
 - [ ] Kubernetes manifests + HPA configs per service (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md))
 - [ ] All 6 failure scenarios demonstrable and documented (see [docs/RUNBOOK.md](docs/RUNBOOK.md))
 - [ ] Demo runbook — step-by-step guide to trigger and observe each failure
+
+**Coverage gate:** Full repo coverage report generated and attached to the CI run. No regression below 80% on any service; 100% maintained on all core business logic files named in iterations 1–3. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
 ---
 
