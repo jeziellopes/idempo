@@ -1,0 +1,20 @@
+{
+  "name": "@idempo/contracts",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/contracts",
+        "main": "packages/contracts/src/index.ts",
+        "tsConfig": "packages/contracts/tsconfig.json"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p packages/contracts/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:shared"]
+}
