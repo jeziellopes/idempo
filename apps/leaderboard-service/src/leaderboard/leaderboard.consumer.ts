@@ -8,7 +8,7 @@ import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('leaderboard-service:consumer');
 
-class MatchEventsConsumer extends BaseKafkaConsumer<BaseEvent> {
+export class MatchEventsConsumer extends BaseKafkaConsumer<BaseEvent> {
   constructor(
     kafka: Kafka,
     private readonly repo: LeaderboardRepository,
