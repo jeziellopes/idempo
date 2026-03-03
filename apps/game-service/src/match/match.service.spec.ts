@@ -187,6 +187,17 @@ describe('MatchService', () => {
       expect(stampMsg.value.type).toBe('StampUsedEvent');
       expect(stampMsg.value.playerId).toBe('player-1');
     });
+
+    it('defaults useStamp to false when the field is undefined (??-branch)', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+      const dtoNoStamp = { actionId: 'action-2', actionType: 'attack' as const, payload: {} };
+
+      await service.submitAction('match-1', 'player-1', dtoNoStamp as any);
+
+      expect(mockKafka.send).toHaveBeenCalledOnce();
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.useStamp).toBe(false);
+    });
   });
 
   // ── _finishMatch ─────────────────────────────────────────────────────────────
@@ -295,6 +306,98 @@ describe('MatchService', () => {
         'match-1',
         expect.objectContaining({ event: 'tick' }),
       );
+    });
+  });
+
+  // ── createOrJoinMatch ────────────────────────────────────────────────────────
+
+  describe('createOrJoinMatch()', () => {
+    it('creates a match, adds the player, and returns matchId / status / wsToken', async () => {
+      mockRepo.createMatch.mockResolvedValue(makeMatch());
+      mockRepo.addPlayer.mockResolvedValue(undefined);
+
+      const result = await service.createOrJoinMatch('player-1', 'Alice');
+
+      expect(mockRepo.createMatch).toHaveBeenCalledWith('test-uuid');
+      expect(mockRepo.addPlayer).toHaveBeenCalled();
+      expect(result).toMatchObject({ matchId: 'test-uuid', status: 'PENDING', wsToken: 'test-uuid' });
+    });
+  });
+
+  // ── _onMatchTimeout ──────────────────────────────────────────────────────────
+
+  describe('_onMatchTimeout()', () => {
+    it('picks the player with the higher score as winner', async () => {
+      mockRepo.getPlayers.mockResolvedValue([
+        makePlayer({ playerId: 'player-1', score: 100 }),
+        makePlayer({ playerId: 'player-2', score: 200 }),
+      ]);
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+
+      await (service as any)._onMatchTimeout('match-1');
+
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.winnerId).toBe('player-2');
+    });
+
+    it('keeps the current leader when the accumulator score is already higher (≥ branch)', async () => {
+      mockRepo.getPlayers.mockResolvedValue([
+        makePlayer({ playerId: 'player-1', score: 300 }),
+        makePlayer({ playerId: 'player-2', score: 100 }),
+      ]);
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+
+      await (service as any)._onMatchTimeout('match-1');
+
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.winnerId).toBe('player-1');
+    });
+  });
+
+  // ── branch: null winnerId in _finishMatch ────────────────────────────────────
+
+  describe('_finishMatch() — null winner', () => {
+    it('emits MatchFinishedEvent with winnerId="" when winner is null', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+      mockRepo.getPlayers.mockResolvedValue([makePlayer({ finalScore: 0 })]);
+
+      await (service as any)._finishMatch('match-1', null);
+
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.winnerId).toBe('');
+    });
+  });
+
+  // ── branch: 0 alive players in _startTickLoop ────────────────────────────────
+
+  describe('_startTickLoop() — 0 alive players', () => {
+    it('calls _finishMatch with null winner when no players remain alive', async () => {
+      mockRepo.findMatch
+        .mockResolvedValueOnce(makeMatch('ACTIVE'))  // tick: is match active?
+        .mockResolvedValueOnce(makeMatch('ACTIVE')); // _finishMatch: already finished?
+      mockRepo.getPlayers
+        .mockResolvedValueOnce([makePlayer({ alive: false })])   // tick: alive check
+        .mockResolvedValueOnce([makePlayer({ finalScore: 0 })]); // _finishMatch: event
+
+      (service as any)._startTickLoop('match-1');
+      await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
+
+      expect(mockRepo.finaliseScores).toHaveBeenCalledWith('match-1');
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.winnerId).toBe('');
+    });
+  });
+
+  // ── branch: spawns fallback in _addPlayerToMatch ─────────────────────────────
+
+  describe('_addPlayerToMatch() — spawn position fallback', () => {
+    it('falls back to spawns[0] when playerIndex exceeds the spawn array length', async () => {
+      mockRepo.addPlayer.mockResolvedValue(undefined);
+
+      // playerIndex=7 > MAX_PLAYERS(6): idx clamped to 6, spawns[6] undefined → spawns[0]
+      await (service as any)._addPlayerToMatch('match-1', 'player-1', 'Alice', 7);
+
+      expect(mockRepo.addPlayer).toHaveBeenCalledWith('match-1', 'player-1', 'Alice', 0, 0);
     });
   });
 });

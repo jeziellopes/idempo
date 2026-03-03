@@ -130,4 +130,112 @@ describe('MatchRepository', () => {
       expect(sql).toContain('DO NOTHING');
     });
   });
+
+  // ── getPlayers ───────────────────────────────────────────────────────────────
+
+  describe('getPlayers()', () => {
+    it('returns mapped player rows for the given match', async () => {
+      const players = [
+        { matchId: 'match-1', playerId: 'player-1', username: 'Alice', hp: 100, score: 0,
+          resources: 0, shields: 0, positionX: 0, positionY: 0, alive: true, team: null, finalScore: 0 },
+      ];
+      mockQuery.mockResolvedValue({ rows: players });
+
+      const result = await repo.getPlayers('match-1');
+
+      expect(result).toEqual(players);
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain('FROM match_players');
+    });
+  });
+
+  // ── startMatch ───────────────────────────────────────────────────────────────
+
+  describe('startMatch()', () => {
+    it("sets status='ACTIVE' and started_at on the match row", async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.startMatch('match-1');
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain("status = 'ACTIVE'");
+    });
+  });
+
+  // ── finishMatch ──────────────────────────────────────────────────────────────
+
+  describe('finishMatch()', () => {
+    it("sets status='FINISHED' and finished_at on the match row", async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.finishMatch('match-1');
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain("status = 'FINISHED'");
+    });
+  });
+
+  // ── updatePlayerPosition ─────────────────────────────────────────────────────
+
+  describe('updatePlayerPosition()', () => {
+    it('updates position_x and position_y for the given player', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.updatePlayerPosition('match-1', 'player-1', 42, 99);
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('position_x');
+      expect(params).toContain(42);
+      expect(params).toContain(99);
+    });
+  });
+
+  // ── applyDamage ──────────────────────────────────────────────────────────────
+
+  describe('applyDamage()', () => {
+    it('applies damage via GREATEST(0, hp - $1) and returns the updated player', async () => {
+      const updated = { matchId: 'match-1', playerId: 'player-2', hp: 80, alive: true };
+      mockQuery.mockResolvedValue({ rows: [updated] });
+
+      const result = await repo.applyDamage('match-1', 'player-2', 20);
+
+      expect(result).toEqual(updated);
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('GREATEST');
+      expect(params).toContain(20);
+    });
+  });
+
+  // ── addScore ─────────────────────────────────────────────────────────────────
+
+  describe('addScore()', () => {
+    it('increments score by the given points for the player', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.addScore('match-1', 'player-1', 50);
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('score = score + $1');
+      expect(params).toContain(50);
+    });
+  });
+
+  // ── finaliseScores ───────────────────────────────────────────────────────────
+
+  describe('finaliseScores()', () => {
+    it('copies score into final_score for all players in the match', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.finaliseScores('match-1');
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain('final_score = score');
+    });
+  });
 });
