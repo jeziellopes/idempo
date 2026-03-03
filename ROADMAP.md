@@ -3,6 +3,8 @@
 **Related:** [docs/PRD.md](docs/PRD.md) · [docs/SPEC.md](docs/SPEC.md)
 
 > **Principle:** Each iteration ships a working, playable version of the game. No iteration leaves the system broken. The boilerplate sprint is the multiplier — every service built in iterations 1–4 costs almost nothing to scaffold because all hard patterns are pre-wired in shared packages.
+>
+> **Definition of done:** An iteration is only complete when `docker compose up -d && nx run e2e:e2e` exits green. Passing the coverage gate alone is not sufficient — the stack must run end-to-end.
 
 ```mermaid
 flowchart LR
@@ -63,6 +65,10 @@ flowchart LR
 
 **Coverage gate:** 100% lines/branches/functions on `match.service.ts`, `match.repository.ts`, `combat-engine.service.ts`, `leaderboard.service.ts`, `leaderboard.repository.ts` (core game logic). ≥90% on all other files in game-service, combat-service, and leaderboard-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
+**Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter1.e2e.ts`
+
+E2E scenario: login → create match → join match → submit Stamp-sealed attack → assert match state update via WebSocket + leaderboard entry visible at `GET /leaderboard/top100`.
+
 ---
 
 ## Iteration 2 — Rewards & Inventory
@@ -81,6 +87,10 @@ flowchart LR
 **Game state:** ✅ Matches run · ✅ Rewards granted exactly once · ✅ Balances visible · ❌ No trading yet
 
 **Coverage gate:** 100% on `reward.service.ts`, `wallet.service.ts`, `wallet.repository.ts`, `inventory.service.ts` (ledger and reward core logic). ≥90% on all other files in reward-service, wallet-service, and inventory-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
+
+**Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter2.e2e.ts`
+
+E2E scenario: complete a match → poll `GET /wallet/:playerId` until balance > 0 (max 15 s, Kafka consumer lag) → assert inventory contains at least one item at `GET /inventory/:playerId`.
 
 ---
 
@@ -104,6 +114,10 @@ flowchart LR
 
 **Coverage gate:** 100% on `trade.saga.ts`, `marketplace.service.ts`, `saga-log.repository.ts` (saga orchestration and compensation logic). ≥90% on all other files in marketplace-service and notification-service. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
+**Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter3.e2e.ts`
+
+E2E scenario (happy path): create listing → execute trade → assert saga state = `COMPLETED` + item transferred to buyer + seller wallet credited. Compensation path: inject wallet-service failure mid-saga → assert saga state = `FAILED`, buyer balance restored, item unlocked.
+
 ---
 
 ## Iteration 4 — Observability & Production Hardening
@@ -121,6 +135,10 @@ flowchart LR
 - [ ] Demo runbook — step-by-step guide to trigger and observe each failure
 
 **Coverage gate:** Full repo coverage report generated and attached to the CI run. No regression below 90% on any service; 100% maintained on all core business logic files named in iterations 1–3. Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
+
+**Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter4.e2e.ts`
+
+E2E scenario: trigger each of the 6 RUNBOOK failure scenarios programmatically → query Prometheus API (`GET /api/v1/query`) to assert the relevant metric crossed its expected threshold (e.g. `circuit_breaker_state == 1`, `dlq_message_count_total > 0`). All Grafana dashboards must load without data gaps.
 
 ---
 

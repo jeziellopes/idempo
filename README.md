@@ -45,6 +45,7 @@ This project exists to demonstrate — concretely and runnably — what top-tier
 - [Idempotency Model](#idempotency-model)
 - [Observability](#observability)
 - [Tech Stack](#tech-stack)
+- [Running the Stack](#running-the-stack)
 - [Project Status](#project-status)
 - [Documentation](#documentation)
 
@@ -254,6 +255,32 @@ graph LR
 <tr><td><strong>Observability</strong></td><td>Prometheus · Grafana · Jaeger · Loki · OpenTelemetry SDK · Pino</td></tr>
 <tr><td><strong>Infrastructure</strong></td><td>Docker Compose (local) · Kubernetes · Helm · KEDA · Nx monorepo · pnpm</td></tr>
 </table>
+
+---
+
+## Running the Stack
+
+Every iteration has a working, runnable version. The two commands below validate any iteration end-to-end:
+
+```bash
+# 1. Start all infrastructure + app services
+docker compose up -d
+
+# 2. Run the E2E suite for a specific iteration (or all)
+nx run e2e:e2e                              # all iterations
+nx run e2e:e2e --testFile=iter1.e2e.ts     # Iteration 1 only
+nx run e2e:e2e --testFile=iter2.e2e.ts     # Iteration 2 only
+nx run e2e:e2e --testFile=iter3.e2e.ts     # Iteration 3 only
+nx run e2e:e2e --testFile=iter4.e2e.ts     # Iteration 4 only
+```
+
+Unit + integration coverage is run separately:
+
+```bash
+pnpm coverage      # all services — enforces per-iteration coverage gates
+```
+
+An iteration is only **done** when both commands exit green. See [ROADMAP.md](ROADMAP.md) for the per-iteration Verification scenarios and [apps/e2e/](apps/e2e/) for the E2E test source.
 
 ---
 
