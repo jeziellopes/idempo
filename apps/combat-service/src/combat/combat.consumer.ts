@@ -24,7 +24,7 @@ class CombatProducer extends BaseKafkaProducer {
   constructor(kafka: Kafka) { super(kafka); }
 }
 
-class PlayerActionConsumer extends BaseKafkaConsumer<PlayerActionEvent> {
+export class PlayerActionConsumer extends BaseKafkaConsumer<PlayerActionEvent> {
   constructor(
     kafka: Kafka,
     private readonly engine: CombatEngineService,
