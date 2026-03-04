@@ -1,4 +1,4 @@
-name: E2E Tests
+name: CI
 
 on:
   push:
@@ -16,9 +16,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  e2e:
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Determine base and head SHAs for affected check
+        id: affected
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "base=${{ github.event.before }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.event.after }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=lint
+
+      - name: Typecheck affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=typecheck
+
+      - name: Build affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=build
+
+  e2e-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
 
     steps:
       - name: Checkout repository
@@ -32,7 +77,41 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run backend E2E tests
+        run: pnpm nx run e2e:e2e
+
+      - name: Upload backend E2E report on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-report
+          path: coverage/
+          retention-days: 7
+
+  e2e-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -41,8 +120,11 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Start Docker services
-        run: docker compose up -d
+      - name: Build all projects (required for Docker images)
+        run: pnpm build
+
+      - name: Start Docker services with rebuilt images
+        run: docker compose up -d --build
 
       - name: Wait for services to be healthy
         run: |
@@ -61,10 +143,7 @@ jobs:
           docker compose logs
           exit 1
 
-      - name: Build web application
-        run: pnpm nx run web:build --skip-nx-cache
-
-      - name: Run E2E tests
+      - name: Run UI E2E tests
         run: pnpm nx run e2e-ui:e2e
 
       - name: Upload Playwright report on failure
@@ -79,7 +158,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: ui-e2e-results
           path: test-results/
           retention-days: 7
 
