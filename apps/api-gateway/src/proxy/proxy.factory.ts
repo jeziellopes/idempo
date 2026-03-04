@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import type { Request, Response, NextFunction } from 'express';
 
 type ProxyHandler = (req: Request, res: Response, next: NextFunction) => void;
@@ -17,9 +17,13 @@ export class ProxyFactory {
       const proxy = createProxyMiddleware({
         target,
         changeOrigin: true,
-        // Strip the NestJS global prefix so downstream services see /matches, not /api/matches
-        pathRewrite: { '^/api': '' },
+        // No pathRewrite: upstream services all use setGlobalPrefix('api') and
+        // therefore expect to receive paths like /api/matches, /api/leaderboard, etc.
         on: {
+          // NestJS body-parser drains req stream into req.body before this middleware
+          // runs. fixRequestBody re-streams req.body to the upstream proxy request so
+          // that POST/PUT bodies are not silently dropped.
+          proxyReq: fixRequestBody,
           error: (err, _req, res) => {
             console.error({ err, target }, 'Proxy error');
             const expressRes = res as Response;

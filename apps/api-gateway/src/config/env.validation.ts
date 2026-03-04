@@ -14,10 +14,12 @@ export const envValidationSchema = Joi.object({
   CORS_ORIGIN: Joi.string().uri().default('http://localhost:3000'),
 
   // Downstream service URLs — required for ProxyModule routing
+  // Port assignments: gateway=3001 game=3002 combat=3003 wallet=3004
+  //   leaderboard=3005 inventory=3006 reward=3007 marketplace=3008 notification=3009
   GAME_SERVICE_URL: Joi.string().uri().default('http://localhost:3002'),
-  WALLET_SERVICE_URL: Joi.string().uri().default('http://localhost:3003'),
-  INVENTORY_SERVICE_URL: Joi.string().uri().default('http://localhost:3004'),
-  MARKETPLACE_SERVICE_URL: Joi.string().uri().default('http://localhost:3005'),
-  LEADERBOARD_SERVICE_URL: Joi.string().uri().default('http://localhost:3006'),
-  NOTIFICATION_SERVICE_URL: Joi.string().uri().default('http://localhost:3007'),
+  WALLET_SERVICE_URL: Joi.string().uri().default('http://localhost:3004'),
+  INVENTORY_SERVICE_URL: Joi.string().uri().default('http://localhost:3006'),
+  MARKETPLACE_SERVICE_URL: Joi.string().uri().default('http://localhost:3008'),
+  LEADERBOARD_SERVICE_URL: Joi.string().uri().default('http://localhost:3005'),
+  NOTIFICATION_SERVICE_URL: Joi.string().uri().default('http://localhost:3009'),
 });
