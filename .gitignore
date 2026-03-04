@@ -24,6 +24,10 @@ logs
 # Coverage
 coverage
 
+# Test artifacts
+playwright-report/
+test-results/
+
 # OS
 .DS_Store
 Thumbs.db
