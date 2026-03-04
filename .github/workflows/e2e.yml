@@ -83,8 +83,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build all projects (required for Docker images)
+        run: pnpm build
+
+      - name: Start Docker services with rebuilt images
+        run: docker compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for Docker services to be ready..."
+          for i in {1..60}; do
+            if docker compose ps | grep -q "healthy\|Up" && \
+               docker compose exec -T api-gateway curl -f http://localhost:3001/health > /dev/null 2>&1; then
+              echo "Services are ready!"
+              exit 0
+            fi
+            echo "Attempt $i/60 - waiting for services..."
+            sleep 2
+          done
+          echo "ERROR: Services failed to start within timeout"
+          docker compose logs
+          exit 1
+
       - name: Run backend E2E tests
         run: pnpm nx run e2e:e2e
+        env:
+          API_URL: http://localhost:3001
 
       - name: Upload backend E2E report on failure
         if: always()
@@ -93,6 +117,10 @@ jobs:
           name: backend-e2e-report
           path: coverage/
           retention-days: 7
+
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down -v
 
   e2e-ui:
     runs-on: ubuntu-latest
