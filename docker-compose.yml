@@ -250,6 +250,12 @@ services:
       - prometheus
     networks:
       - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   # ── Loki (log aggregation) ─────────────────────────────────────────────────
   loki:
@@ -327,6 +333,12 @@ services:
         condition: service_healthy
     networks:
       - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # ── Combat Service (port 3003) ─────────────────────────────────────────
   combat-service:
@@ -345,6 +357,12 @@ services:
         condition: service_healthy
     networks:
       - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # ── Leaderboard Service (port 3005) ────────────────────────────────────
   leaderboard-service:
@@ -376,6 +394,12 @@ services:
         condition: service_healthy
     networks:
       - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # ── Web (Next.js, port 3000) ────────────────────────────────────────────────
   web:
@@ -386,6 +410,13 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
     networks:
       - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
