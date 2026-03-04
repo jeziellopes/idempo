@@ -2,16 +2,17 @@
   "name": "combat-service",
   "targets": {
     "build": {
-      "executor": "@nx/node:build",
+      "executor": "@nx/js:swc",
       "options": {
         "outputPath": "dist/apps/combat-service",
         "main": "apps/combat-service/src/main.ts",
         "tsConfig": "apps/combat-service/tsconfig.json",
+        "swcrc": ".swcrc",
         "assets": []
       }
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": { "buildTarget": "combat-service:build" }
     },
     "test": {

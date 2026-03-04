@@ -2,16 +2,17 @@
   "name": "game-service",
   "targets": {
     "build": {
-      "executor": "@nx/node:build",
+      "executor": "@nx/js:swc",
       "options": {
         "outputPath": "dist/apps/game-service",
         "main": "apps/game-service/src/main.ts",
         "tsConfig": "apps/game-service/tsconfig.json",
+        "swcrc": ".swcrc",
         "assets": []
       }
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "game-service:build"
       }

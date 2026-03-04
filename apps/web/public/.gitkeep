@@ -1,0 +1,3 @@
+# This directory is intentionally empty.
+# Next.js requires a public/ directory to exist for the standalone Docker build.
+# Add static assets (favicon.ico, robots.txt, etc.) here as needed.

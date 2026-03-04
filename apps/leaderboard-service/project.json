@@ -2,16 +2,17 @@
   "name": "leaderboard-service",
   "targets": {
     "build": {
-      "executor": "@nx/node:build",
+      "executor": "@nx/js:swc",
       "options": {
         "outputPath": "dist/apps/leaderboard-service",
         "main": "apps/leaderboard-service/src/main.ts",
         "tsConfig": "apps/leaderboard-service/tsconfig.json",
+        "swcrc": ".swcrc",
         "assets": []
       }
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": { "buildTarget": "leaderboard-service:build" }
     },
     "test": {
