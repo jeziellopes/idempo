@@ -1,0 +1,13 @@
+{
+  "name": "e2e",
+  "targets": {
+    "e2e": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "configFile": "apps/e2e/vitest.config.ts",
+        "passWithNoTests": false
+      }
+    }
+  },
+  "tags": ["scope:e2e"]
+}
