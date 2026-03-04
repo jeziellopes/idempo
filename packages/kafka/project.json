@@ -9,6 +9,9 @@
         "tsConfig": "packages/kafka/tsconfig.json"
       }
     },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {

@@ -57,5 +57,23 @@ jobs:
       - name: Typecheck affected projects
         run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=typecheck
 
+      - name: Test affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=test
+
+      - name: Lint root configuration files
+        run: pnpm eslint eslint.config.mjs bundle-services.mjs apps/web/next.config.ts apps/web/postcss.config.mjs
+
       - name: Build affected projects
         run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=build
+
+      - name: Run full coverage on main/develop
+        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+        run: pnpm coverage
+
+      - name: Upload coverage report
+        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30

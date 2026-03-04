@@ -18,6 +18,15 @@
           "command": "playwright test --debug"
         }
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/e2e-ui/tsconfig.json"
+      }
     }
   },
   "tags": ["scope:app", "type:e2e"]

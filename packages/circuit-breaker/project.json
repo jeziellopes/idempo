@@ -9,6 +9,9 @@
         "tsConfig": "packages/circuit-breaker/tsconfig.json"
       }
     },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
