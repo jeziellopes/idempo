@@ -12,6 +12,14 @@ CREATE TABLE matches (
 CREATE TABLE match_players (
   match_id     UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
   player_id    UUID NOT NULL,
+  username     VARCHAR(80) NOT NULL,
+  hp           INT NOT NULL DEFAULT 100,
+  score        INT NOT NULL DEFAULT 0,
+  resources    INT NOT NULL DEFAULT 0,
+  shields      INT NOT NULL DEFAULT 0,
+  position_x   INT NOT NULL DEFAULT 0,
+  position_y   INT NOT NULL DEFAULT 0,
+  alive        BOOLEAN NOT NULL DEFAULT true,
   team         SMALLINT,
   final_score  INT NOT NULL DEFAULT 0,
   PRIMARY KEY (match_id, player_id)

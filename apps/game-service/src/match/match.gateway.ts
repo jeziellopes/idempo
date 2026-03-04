@@ -43,6 +43,8 @@ export class MatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   broadcastMatchState(matchId: string, payload: Record<string, unknown>): void {
+    // server may be undefined if no WebSocket adapter is attached (e.g. in test environments)
+    if (!this.server) return;
     this.server.to(matchId).emit('match:state', payload);
   }
 }

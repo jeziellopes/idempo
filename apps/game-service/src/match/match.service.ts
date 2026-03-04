@@ -87,7 +87,7 @@ export class MatchService {
     await this._addPlayerToMatch(matchId, playerId, username, playerCount + 1);
 
     const newCount = playerCount + 1;
-    if (newCount >= MAX_PLAYERS) {
+    if (newCount >= MIN_PLAYERS) {
       await this._startMatch(matchId);
     }
 

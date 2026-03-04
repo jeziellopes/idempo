@@ -89,18 +89,18 @@ describe('MatchService', () => {
         .rejects.toThrow(ConflictException);
     });
 
-    it('calls startMatch when the joining player reaches MAX_PLAYERS', async () => {
+    it('calls startMatch when the joining player reaches MIN_PLAYERS', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
-      mockRepo.countActivePlayers.mockResolvedValue(MAX_PLAYERS - 1);
+      mockRepo.countActivePlayers.mockResolvedValue(MIN_PLAYERS - 1); // 1 existing → newCount = MIN_PLAYERS
 
       await service.joinMatch('match-1', 'player-2', 'Bob');
 
       expect(mockRepo.startMatch).toHaveBeenCalledWith('match-1');
     });
 
-    it('does not call startMatch when below MAX_PLAYERS', async () => {
+    it('does not call startMatch when below MIN_PLAYERS', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
-      mockRepo.countActivePlayers.mockResolvedValue(1); // 1 + 1 = 2 < MAX_PLAYERS
+      mockRepo.countActivePlayers.mockResolvedValue(0); // 0 existing → newCount = 1 < MIN_PLAYERS
 
       await service.joinMatch('match-1', 'player-2', 'Bob');
 
