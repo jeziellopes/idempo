@@ -17,6 +17,16 @@ export default function LobbyPage() {
     setLoading(true);
     setError(null);
     try {
+      // TEMPORARY: Auto-authenticate with hardcoded password
+      // Production auth flow (signup, login UI, session management) will be implemented later.
+      // For now, this allows users to enter username and transparently get a JWT token.
+      const existingToken = localStorage.getItem('authToken');
+      if (!existingToken) {
+        const loginRes = await api.login(username.trim(), 'idempo');
+        localStorage.setItem('authToken', loginRes.accessToken);
+      }
+
+      // Create match
       const playerId = uuidv4();
       const res = await api.createMatch(playerId, username.trim());
       setMatch(res.matchId, playerId, username.trim());

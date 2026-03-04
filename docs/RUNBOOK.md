@@ -8,6 +8,8 @@ Each scenario below must be demonstrable and observable in Grafana / Jaeger agai
 
 ## Prerequisites
 
+**Temporary Authentication Note:** The web UI currently uses auto-generated JWT tokens for streamlined testing. When users enter a username, a token is automatically generated with the hardcoded password "idempo". This is a temporary implementation — production-ready authentication (signup, login UI, session management) will be implemented in a future iteration.
+
 ```bash
 # Start full local stack
 docker compose up -d
@@ -16,10 +18,10 @@ docker compose up -d
 docker compose ps
 
 # Open observability UIs
-open http://localhost:3000   # Grafana
+open http://localhost:3000   # Web UI (or Grafana if observability enabled)
 open http://localhost:16686  # Jaeger
 open http://localhost:9090   # Prometheus
-open http://localhost:8080   # DLQ Admin UI
+open http://localhost:8080   # DLQ Admin UI (if implemented)
 ```
 
 ---
