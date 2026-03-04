@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useMatchStore } from '../../store/match.store.js';
-import { api } from '../../lib/api.js';
+import { useMatchStore } from '../../store/match.store';
+import { api } from '../../lib/api';
 
 type Direction = 'north' | 'south' | 'east' | 'west';
 

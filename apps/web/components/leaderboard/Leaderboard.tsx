@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api, type LeaderboardEntry } from '../../lib/api.js';
+import { api, type LeaderboardEntry } from '../../lib/api';
 
 export function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);

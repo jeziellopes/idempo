@@ -1,4 +1,4 @@
-import { Leaderboard } from '../../components/leaderboard/Leaderboard.js';
+import { Leaderboard } from '../../components/leaderboard/Leaderboard';
 
 export default function LeaderboardPage() {
   return <Leaderboard />;

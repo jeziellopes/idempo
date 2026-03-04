@@ -263,10 +263,16 @@ graph LR
 Every iteration has a working, runnable version. The two commands below validate any iteration end-to-end:
 
 ```bash
-# 1. Start all infrastructure + app services
-docker compose up -d
+# 0. One-time setup — copy the env template and set JWT_SECRET (required)
+cp .env.example .env
 
-# 2. Run the E2E suite for a specific iteration (or all)
+# 1. Build all app artifacts on the host (Nx handles caching — fast on repeat runs)
+pnpm build
+
+# 2. Start all infrastructure + app services
+docker compose up -d --build
+
+# 3. Run the E2E suite for a specific iteration (or all)
 nx run e2e:e2e                              # all iterations
 nx run e2e:e2e --testFile=iter1.e2e.ts     # Iteration 1 only
 nx run e2e:e2e --testFile=iter2.e2e.ts     # Iteration 2 only

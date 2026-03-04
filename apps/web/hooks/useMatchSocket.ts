@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, type RefObject } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { useMatchStore, type PlayerState } from '../store/match.store.js';
+import { useMatchStore, type PlayerState } from '../store/match.store';
 
 const GAME_SERVICE_URL = process.env['NEXT_PUBLIC_GAME_SERVICE_URL'] ?? 'http://localhost:3002';
 

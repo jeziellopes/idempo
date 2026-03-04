@@ -4,7 +4,7 @@
 
 > **Principle:** Each iteration ships a working, playable version of the game. No iteration leaves the system broken. The boilerplate sprint is the multiplier — every service built in iterations 1–4 costs almost nothing to scaffold because all hard patterns are pre-wired in shared packages.
 >
-> **Definition of done:** An iteration is only complete when `docker compose up -d && nx run e2e:e2e` exits green. Passing the coverage gate alone is not sufficient — the stack must run end-to-end.
+> **Definition of done:** An iteration is only complete when `pnpm build && docker compose up -d --build && nx run e2e:e2e` exits green. Passing the coverage gate alone is not sufficient — the stack must run end-to-end.
 
 ```mermaid
 flowchart LR
@@ -32,6 +32,10 @@ flowchart LR
 
 - [x] Monorepo scaffold with Nx + pnpm workspaces
 - [x] `docker-compose.yml` — Kafka, PostgreSQL ×4, Redis, Jaeger, Prometheus, Grafana
+- [x] `Dockerfile` — pre-built artifacts strategy (NestJS `nestjs` target + Next.js `nextjs` target); avoids Nx daemon issues inside Docker build sandboxes
+- [x] All app services in `docker-compose.yml` with correct env wiring to Docker service names
+- [x] `.env.example` — canonical list of all required environment variables with safe local-dev defaults
+- [x] `apps/e2e` — Nx project with per-iteration E2E test files; `pnpm e2e` runs the full suite
 - [x] `apps/api-gateway`
   - [x] `ConfigModule` + Joi env schema (fail-fast on missing `JWT_SECRET`)
   - [x] `ThrottlerGuard` registered as `APP_GUARD` (rate limiting currently inert)

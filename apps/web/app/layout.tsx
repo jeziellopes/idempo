@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '⚔️ idempo — Tactical Arena',
+  title: '⚔️ 𝔦𝔡𝔢𝔪𝔭𝔬 — Tactical Arena',
   description: 'Real-time tactical arena game demonstrating distributed systems patterns',
 };
 

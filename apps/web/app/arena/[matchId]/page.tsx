@@ -1,4 +1,4 @@
-import { Arena } from '../../../components/arena/Arena.js';
+import { Arena } from '../../../components/arena/Arena';
 
 interface Props {
   params: Promise<{ matchId: string }>;

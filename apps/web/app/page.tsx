@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '../lib/api.js';
-import { useMatchStore } from '../store/match.store.js';
+import { api } from '../lib/api';
+import { useMatchStore } from '../store/match.store';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function LobbyPage() {
@@ -31,7 +31,7 @@ export default function LobbyPage() {
   return (
     <div className="max-w-md mx-auto space-y-8 mt-16">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">⚔️ idempo</h1>
+        <h1 className="text-4xl font-bold tracking-tight">⚔️ 𝔦𝔡𝔢𝔪𝔭𝔬</h1>
         <p className="text-gray-400 text-sm">
           Real-time tactical arena · idempotency as game mechanic
         </p>

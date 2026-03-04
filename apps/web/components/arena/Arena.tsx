@@ -1,8 +1,8 @@
 'use client';
-import { useMatchStore } from '../../store/match.store.js';
-import { useMatchSocket } from '../../hooks/useMatchSocket.js';
-import { PlayerGrid } from './PlayerGrid.js';
-import { ActionPanel } from './ActionPanel.js';
+import { useMatchStore } from '../../store/match.store';
+import { useMatchSocket } from '../../hooks/useMatchSocket';
+import { PlayerGrid } from './PlayerGrid';
+import { ActionPanel } from './ActionPanel';
 
 interface Props {
   matchId: string;

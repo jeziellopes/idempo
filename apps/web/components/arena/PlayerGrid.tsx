@@ -1,5 +1,5 @@
 'use client';
-import type { PlayerState } from '../../store/match.store.js';
+import type { PlayerState } from '../../store/match.store';
 
 // 10×10 grid — default map layout from GAME.md §2.2
 const RESOURCE_NODES: [number, number][] = [
