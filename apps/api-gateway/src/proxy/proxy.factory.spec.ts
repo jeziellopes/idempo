@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockProxyMiddleware, mockCreateProxyMiddleware } = vi.hoisted(() => {
+const { mockProxyMiddleware, mockCreateProxyMiddleware, mockFixRequestBody } = vi.hoisted(() => {
   const mockProxyMiddleware = vi.fn();
   const mockCreateProxyMiddleware = vi.fn().mockReturnValue(mockProxyMiddleware);
-  return { mockProxyMiddleware, mockCreateProxyMiddleware };
+  const mockFixRequestBody = vi.fn();
+  return { mockProxyMiddleware, mockCreateProxyMiddleware, mockFixRequestBody };
 });
 
 vi.mock('http-proxy-middleware', () => ({
   createProxyMiddleware: mockCreateProxyMiddleware,
+  fixRequestBody: mockFixRequestBody,
 }));
 
 import { ProxyFactory } from './proxy.factory.js';
