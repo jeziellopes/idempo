@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LeaderboardController } from './leaderboard.controller.js';
-import { LeaderboardService } from './leaderboard.service.js';
+import type { LeaderboardService } from './leaderboard.service.js';
 import type { RankEntry } from './leaderboard.repository.js';
 
 type MockService = Pick<LeaderboardService, 'getTop100'>;
@@ -25,7 +25,7 @@ describe('LeaderboardController', () => {
 
   it('returns entries and meta when data is fresh', async () => {
     const entries = [makeEntry(), makeEntry({ playerId: 'player-2', rank: 2, score: 80 })];
-    mockService.getTop100.mockResolvedValue({ entries, meta: { stale: false, count: entries.length } });
+    mockService.getTop100.mockResolvedValue({ entries, meta: { stale: false, count: 2 } });
 
     const result = await controller.getLeaderboard();
 
@@ -36,7 +36,7 @@ describe('LeaderboardController', () => {
 
   it('propagates stale=true from the service', async () => {
     const entries = [makeEntry()];
-    mockService.getTop100.mockResolvedValue({ entries, meta: { stale: true, count: entries.length } });
+    mockService.getTop100.mockResolvedValue({ entries, meta: { stale: true, count: 1 } });
 
     const result = await controller.getLeaderboard();
 
