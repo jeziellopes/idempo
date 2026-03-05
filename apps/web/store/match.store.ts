@@ -58,8 +58,11 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
   reset: () =>
     set({
       matchId: null,
+      playerId: null,
+      username: null,
       status: 'idle',
       players: [],
+      stampBalance: 5,
       lastWinnerId: null,
     }),
 }));
