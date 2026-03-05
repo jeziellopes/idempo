@@ -20,8 +20,10 @@
     "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.4",
     "@nx/esbuild": "^22.5.3",
     "@nx/eslint": "^22.5.3",
+    "@nx/eslint-plugin": "^22.5.4",
     "@nx/js": "^22.5.3",
     "@nx/nest": "^22.5.3",
     "@nx/next": "^22.5.3",

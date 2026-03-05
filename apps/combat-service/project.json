@@ -19,7 +19,12 @@
       "executor": "@nx/vitest:test",
       "options": { "configFile": "apps/combat-service/vitest.config.ts", "passWithNoTests": true }
     },
-    "lint": { "executor": "@nx/eslint:lint" },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/combat-service/src/**/*.ts"]
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": { "command": "tsc --noEmit -p apps/combat-service/tsconfig.json" }

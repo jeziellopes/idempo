@@ -10,7 +10,10 @@
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["packages/contracts/src/**/*.ts"]
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",

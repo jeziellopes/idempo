@@ -19,7 +19,12 @@
       "executor": "@nx/vitest:test",
       "options": { "configFile": "apps/leaderboard-service/vitest.config.ts", "passWithNoTests": true }
     },
-    "lint": { "executor": "@nx/eslint:lint" },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/leaderboard-service/src/**/*.ts"]
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": { "command": "tsc --noEmit -p apps/leaderboard-service/tsconfig.json" }

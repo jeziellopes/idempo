@@ -20,7 +20,10 @@
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/e2e-ui/src/**/*.ts"]
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",

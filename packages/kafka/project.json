@@ -10,7 +10,10 @@
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["packages/kafka/src/**/*.ts"]
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",
