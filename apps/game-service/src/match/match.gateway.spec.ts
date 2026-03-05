@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Server, Socket } from 'socket.io';
 
 vi.mock('@idempo/observability', () => ({
   getLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
@@ -10,14 +11,14 @@ describe('MatchGateway', () => {
   let gateway: MatchGateway;
   let mockEmit: ReturnType<typeof vi.fn>;
   let mockTo: ReturnType<typeof vi.fn>;
-  let mockClient: { id: string; join: ReturnType<typeof vi.fn>; leave: ReturnType<typeof vi.fn> };
+  let mockClient: Pick<Socket, 'id' | 'join' | 'leave'>;
 
   beforeEach(() => {
     gateway = new MatchGateway();
 
     mockEmit = vi.fn();
     mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
-    gateway.server = { to: mockTo } as any;
+    gateway.server = { to: mockTo } as unknown as Server;
 
     mockClient = { id: 'socket-123', join: vi.fn().mockResolvedValue(undefined), leave: vi.fn().mockResolvedValue(undefined) };
   });
@@ -46,7 +47,7 @@ describe('MatchGateway', () => {
 
   describe('handleJoinRoom()', () => {
     it('adds the client to the match room', () => {
-      gateway.handleJoinRoom({ matchId: 'match-1' }, mockClient as any);
+      gateway.handleJoinRoom({ matchId: 'match-1' }, mockClient as Socket);
 
       expect(mockClient.join).toHaveBeenCalledWith('match-1');
     });
@@ -56,7 +57,7 @@ describe('MatchGateway', () => {
 
   describe('handleLeaveRoom()', () => {
     it('removes the client from the match room', () => {
-      gateway.handleLeaveRoom({ matchId: 'match-1' }, mockClient as any);
+      gateway.handleLeaveRoom({ matchId: 'match-1' }, mockClient as Socket);
 
       expect(mockClient.leave).toHaveBeenCalledWith('match-1');
     });
@@ -66,11 +67,11 @@ describe('MatchGateway', () => {
 
   describe('handleConnection() / handleDisconnect()', () => {
     it('completes without error on connection', () => {
-      expect(() => gateway.handleConnection(mockClient as any)).not.toThrow();
+      expect(() => gateway.handleConnection(mockClient as Socket)).not.toThrow();
     });
 
     it('completes without error on disconnection', () => {
-      expect(() => gateway.handleDisconnect(mockClient as any)).not.toThrow();
+      expect(() => gateway.handleDisconnect(mockClient as Socket)).not.toThrow();
     });
   });
 });

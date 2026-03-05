@@ -47,12 +47,23 @@ describe('ProxyFactory', () => {
   it('the error handler sends 502 BAD_GATEWAY when headers have not been sent', () => {
     factory.getProxy('http://game-service:3002');
 
-    const opts = mockCreateProxyMiddleware.mock.calls[0]![0] as any;
-    const mockRes = {
+    type ProxyOptions = {
+      on: {
+        error: (err: Error, req: unknown, res: unknown) => void;
+      };
+    };
+    type MockResponse = {
+      headersSent: boolean;
+      status: ReturnType<typeof vi.fn>;
+      json: ReturnType<typeof vi.fn>;
+    };
+
+    const opts = mockCreateProxyMiddleware.mock.calls[0]![0] as ProxyOptions;
+    const mockRes: MockResponse = {
       headersSent: false,
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
-    } as any;
+    };
 
     opts.on.error(new Error('ECONNREFUSED'), {}, mockRes);
 
@@ -68,8 +79,19 @@ describe('ProxyFactory', () => {
   it('the error handler is a no-op when headers have already been sent', () => {
     factory.getProxy('http://game-service:3002');
 
-    const opts = mockCreateProxyMiddleware.mock.calls[0]![0] as any;
-    const mockRes = { headersSent: true, status: vi.fn(), json: vi.fn() } as any;
+    type ProxyOptions = {
+      on: {
+        error: (err: Error, req: unknown, res: unknown) => void;
+      };
+    };
+    type MockResponse = {
+      headersSent: boolean;
+      status: ReturnType<typeof vi.fn>;
+      json: ReturnType<typeof vi.fn>;
+    };
+
+    const opts = mockCreateProxyMiddleware.mock.calls[0]![0] as ProxyOptions;
+    const mockRes: MockResponse = { headersSent: true, status: vi.fn(), json: vi.fn() };
 
     opts.on.error(new Error('already flushed'), {}, mockRes);
 

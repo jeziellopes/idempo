@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LeaderboardRepository, type RankEntry } from './leaderboard.repository.js';
+import type pg from 'pg';
+import type Redis from 'ioredis';
 
 const REDIS_KEY = 'leaderboard:top100';
 
@@ -25,8 +27,8 @@ describe('LeaderboardRepository', () => {
     mockSet = vi.fn().mockResolvedValue('OK');
     mockDel = vi.fn().mockResolvedValue(1);
 
-    const mockPool = { query: mockQuery } as any;
-    const mockRedis = { get: mockGet, set: mockSet, del: mockDel } as any;
+    const mockPool = { query: mockQuery } as unknown as pg.Pool;
+    const mockRedis = { get: mockGet, set: mockSet, del: mockDel } as unknown as Redis;
     repo = new LeaderboardRepository(mockPool, mockRedis);
   });
 

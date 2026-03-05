@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LeaderboardService } from './leaderboard.service.js';
-import type { RankEntry } from './leaderboard.repository.js';
+import type { LeaderboardRepository, RankEntry } from './leaderboard.repository.js';
+
+type MockRepo = Pick<LeaderboardRepository, 'getTop100WithStaleFallback'>;
 
 const makeEntry = (overrides: Partial<RankEntry> = {}): RankEntry => ({
   playerId: 'player-1',
@@ -12,12 +14,12 @@ const makeEntry = (overrides: Partial<RankEntry> = {}): RankEntry => ({
 });
 
 describe('LeaderboardService', () => {
-  let mockRepo: { getTop100WithStaleFallback: ReturnType<typeof vi.fn> };
+  let mockRepo: MockRepo;
   let service: LeaderboardService;
 
   beforeEach(() => {
     mockRepo = { getTop100WithStaleFallback: vi.fn() };
-    service = new LeaderboardService(mockRepo as any);
+    service = new LeaderboardService(mockRepo as unknown as LeaderboardRepository);
   });
 
   it('returns entries and correct meta when data is fresh', async () => {

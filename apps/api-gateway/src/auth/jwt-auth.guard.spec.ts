@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { ExecutionContext } from '@nestjs/common';
 
 vi.mock('@nestjs/passport', () => ({
   AuthGuard: vi.fn().mockImplementation(() =>
@@ -19,7 +20,7 @@ describe('JwtAuthGuard', () => {
 
   it('delegates to super.canActivate() and returns a resolved boolean', async () => {
     const guard = new JwtAuthGuard();
-    const mockCtx = {} as any;
+    const mockCtx = {} as ExecutionContext;
 
     const result = await guard.canActivate(mockCtx);
 

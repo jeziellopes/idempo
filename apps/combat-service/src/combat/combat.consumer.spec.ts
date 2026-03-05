@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Kafka } from 'kafkajs';
 
 vi.mock('kafkajs', () => ({
   Kafka: vi.fn(() => ({})),
@@ -26,12 +27,39 @@ vi.mock('@idempo/observability', () => ({
 }));
 
 import { PlayerActionConsumer, CombatConsumerService } from './combat.consumer.js';
-import { CombatEngineService } from './combat-engine.service.js';
+import type { CombatEngineService } from './combat-engine.service.js';
 import { TOPICS } from '@idempo/contracts';
+import { BaseKafkaProducer } from '@idempo/kafka';
 
-const makeAttackEvent = (overrides: Record<string, unknown> = {}) => ({
+type MockEngine = {
+  resolve: ReturnType<typeof vi.fn>;
+};
+
+// MockCombatProducer extends the mocked BaseKafkaProducer
+class MockCombatProducer extends BaseKafkaProducer {
+  constructor(kafka: Kafka) {
+    super(kafka);
+  }
+}
+
+interface PlayerActionEvent {
+  eventId: string;
+  type: 'PlayerActionEvent';
+  actionId: string;
+  matchId: string;
+  playerId: string;
+  actionType: string;
+  payload: Record<string, unknown>;
+  useStamp: boolean;
+  correlationId: string;
+  causationId: string;
+  version: number;
+  timestamp: string;
+}
+
+const makeAttackEvent = (overrides: Partial<PlayerActionEvent> = {}): PlayerActionEvent => ({
   eventId: 'evt-1',
-  type: 'PlayerActionEvent' as const,
+  type: 'PlayerActionEvent',
   actionId: 'action-1',
   matchId: 'match-1',
   playerId: 'player-a',
@@ -45,7 +73,7 @@ const makeAttackEvent = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const makeEngine = () => ({
+const makeEngine = (): MockEngine => ({
   resolve: vi.fn().mockReturnValue({
     damage: 20,
     isCritical: false,
@@ -65,25 +93,29 @@ const makeEngine = () => ({
   }),
 });
 
-const makeProducer = () => ({
-  publish: vi.fn().mockResolvedValue([]),
-});
+const makeProducer = (): MockCombatProducer => {
+  return new MockCombatProducer({} as Kafka);
+};
 
 describe('PlayerActionConsumer.handle()', () => {
-  let engine: ReturnType<typeof makeEngine>;
-  let producer: ReturnType<typeof makeProducer>;
+  let engine: MockEngine;
+  let producer: MockCombatProducer;
   let consumer: PlayerActionConsumer;
 
   beforeEach(() => {
     engine = makeEngine();
     producer = makeProducer();
-    consumer = new PlayerActionConsumer({} as any, engine as any, producer as any);
+    consumer = new PlayerActionConsumer(
+      {} as Kafka,
+      engine as unknown as CombatEngineService,
+      producer
+    );
   });
 
   it('returns early without processing when actionType is not "attack"', async () => {
     const event = makeAttackEvent({ actionType: 'move' });
 
-    await consumer.handle(event as any);
+    await consumer.handle(event);
 
     expect(engine.resolve).not.toHaveBeenCalled();
     expect(producer.publish).not.toHaveBeenCalled();
@@ -92,7 +124,7 @@ describe('PlayerActionConsumer.handle()', () => {
   it('returns early with a warning when targetId is missing from payload', async () => {
     const event = makeAttackEvent({ payload: {} });
 
-    await consumer.handle(event as any);
+    await consumer.handle(event);
 
     expect(engine.resolve).not.toHaveBeenCalled();
     expect(producer.publish).not.toHaveBeenCalled();
@@ -101,7 +133,7 @@ describe('PlayerActionConsumer.handle()', () => {
   it('returns early with a warning when targetId is an empty string', async () => {
     const event = makeAttackEvent({ payload: { targetId: '' } });
 
-    await consumer.handle(event as any);
+    await consumer.handle(event);
 
     expect(engine.resolve).not.toHaveBeenCalled();
   });
@@ -109,7 +141,7 @@ describe('PlayerActionConsumer.handle()', () => {
   it('resolves damage and publishes PlayerAttackedEvent on valid attack', async () => {
     const event = makeAttackEvent();
 
-    await consumer.handle(event as any);
+    await consumer.handle(event);
 
     expect(engine.resolve).toHaveBeenCalledWith({
       actionId: 'action-1',
@@ -129,18 +161,29 @@ describe('PlayerActionConsumer.handle()', () => {
 
 describe('CombatConsumerService lifecycle', () => {
   let service: CombatConsumerService;
-  let engine: ReturnType<typeof makeEngine>;
+  let engine: MockEngine;
+
+  // Type for accessing private properties in tests
+  type ServiceWithInternals = {
+    producer: { connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
+    consumer: {
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      subscribe: ReturnType<typeof vi.fn>;
+      start: ReturnType<typeof vi.fn>;
+    };
+  };
 
   beforeEach(() => {
     engine = makeEngine();
-    service = new CombatConsumerService(engine as any);
+    service = new CombatConsumerService(engine as unknown as CombatEngineService);
   });
 
   it('connects producer and consumer, subscribes, and starts on init', async () => {
     await service.onModuleInit();
 
-    const internalProducer = (service as any).producer;
-    const internalConsumer = (service as any).consumer;
+    const { producer: internalProducer, consumer: internalConsumer } =
+      service as unknown as ServiceWithInternals;
 
     expect(internalProducer.connect).toHaveBeenCalled();
     expect(internalConsumer.connect).toHaveBeenCalled();
@@ -151,8 +194,8 @@ describe('CombatConsumerService lifecycle', () => {
   it('disconnects consumer and producer on destroy', async () => {
     await service.onModuleDestroy();
 
-    const internalConsumer = (service as any).consumer;
-    const internalProducer = (service as any).producer;
+    const { consumer: internalConsumer, producer: internalProducer } =
+      service as unknown as ServiceWithInternals;
 
     expect(internalConsumer.disconnect).toHaveBeenCalled();
     expect(internalProducer.disconnect).toHaveBeenCalled();

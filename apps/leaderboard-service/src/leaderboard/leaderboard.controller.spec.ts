@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LeaderboardController } from './leaderboard.controller.js';
-import type { RankEntry } from './leaderboard.repository.js';
+import type { LeaderboardRepository, RankEntry } from './leaderboard.repository.js';
+
+type MockRepo = Pick<LeaderboardRepository, 'getTop100WithStaleFallback'>;
 
 const makeEntry = (overrides: Partial<RankEntry> = {}): RankEntry => ({
   playerId: 'player-1',
@@ -12,12 +14,12 @@ const makeEntry = (overrides: Partial<RankEntry> = {}): RankEntry => ({
 });
 
 describe('LeaderboardController', () => {
-  let mockRepo: { getTop100WithStaleFallback: ReturnType<typeof vi.fn> };
+  let mockRepo: MockRepo;
   let controller: LeaderboardController;
 
   beforeEach(() => {
     mockRepo = { getTop100WithStaleFallback: vi.fn() };
-    controller = new LeaderboardController(mockRepo as any);
+    controller = new LeaderboardController(mockRepo as unknown as LeaderboardRepository);
   });
 
   it('returns entries and meta when data is fresh', async () => {

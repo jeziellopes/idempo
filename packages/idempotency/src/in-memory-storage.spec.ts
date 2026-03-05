@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InMemoryIdempotencyStorage } from './in-memory-storage.js';
 
 describe('InMemoryIdempotencyStorage', () => {

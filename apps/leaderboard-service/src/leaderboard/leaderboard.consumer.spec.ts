@@ -41,13 +41,29 @@ const makeMatchFinishedEvent = (scores: { playerId: string; score: number }[]): 
   finalScores: scores,
 });
 
+import type { Kafka } from 'kafkajs';
+import type { LeaderboardRepository } from './leaderboard.repository.js';
+
+type MockRepo = Pick<LeaderboardRepository, 'upsertScore'>;
+
+type ServiceWithConsumer = LeaderboardConsumerService & {
+  consumer: {
+    connect: ReturnType<typeof vi.fn>;
+    subscribe: ReturnType<typeof vi.fn>;
+    start: ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+  };
+};
 describe('MatchEventsConsumer.handle()', () => {
-  let mockRepo: { upsertScore: ReturnType<typeof vi.fn> };
+  let mockRepo: MockRepo;
   let consumer: MatchEventsConsumer;
 
   beforeEach(() => {
     mockRepo = { upsertScore: vi.fn().mockResolvedValue(undefined) };
-    consumer = new MatchEventsConsumer({} as any, mockRepo as any);
+    consumer = new MatchEventsConsumer(
+      {} as Kafka,
+      mockRepo as unknown as LeaderboardRepository,
+    );
   });
 
   it('ignores events that are not MatchFinishedEvent', async () => {
@@ -87,13 +103,13 @@ describe('LeaderboardConsumerService lifecycle', () => {
 
   beforeEach(() => {
     const mockRepo = { upsertScore: vi.fn() };
-    service = new LeaderboardConsumerService(mockRepo as any);
+    service = new LeaderboardConsumerService(mockRepo as unknown as LeaderboardRepository);
   });
 
   it('connects, subscribes, and starts the consumer on init', async () => {
     await service.onModuleInit();
 
-    const consumer = (service as any).consumer;
+    const consumer = (service as ServiceWithConsumer).consumer;
     expect(consumer.connect).toHaveBeenCalled();
     expect(consumer.subscribe).toHaveBeenCalledWith([TOPICS.MATCH_EVENTS]);
     expect(consumer.start).toHaveBeenCalled();
@@ -102,7 +118,7 @@ describe('LeaderboardConsumerService lifecycle', () => {
   it('disconnects the consumer on destroy', async () => {
     await service.onModuleDestroy();
 
-    const consumer = (service as any).consumer;
+    const consumer = (service as ServiceWithConsumer).consumer;
     expect(consumer.disconnect).toHaveBeenCalled();
   });
 });

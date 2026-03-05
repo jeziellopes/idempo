@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { MatchController } from './match.controller.js';
+import type { MatchService } from './match.service.js';
+
+type MockMatchService = Pick<
+  MatchService,
+  'createOrJoinMatch' | 'joinMatch' | 'getMatchState' | 'submitAction'
+>;
 
 describe('MatchController', () => {
-  let mockService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockService: MockMatchService;
   let controller: MatchController;
 
   beforeEach(() => {
@@ -13,7 +19,7 @@ describe('MatchController', () => {
       getMatchState: vi.fn().mockResolvedValue({ matchId: 'match-1', status: 'ACTIVE', players: [] }),
       submitAction: vi.fn().mockResolvedValue({ accepted: true, duplicate: false }),
     };
-    controller = new MatchController(mockService as any);
+    controller = new MatchController(mockService as MatchService);
   });
 
   // ── createMatch ──────────────────────────────────────────────────────────────
@@ -70,9 +76,12 @@ describe('MatchController', () => {
     });
 
     it('defaults payload to {} when not provided in the body', async () => {
-      const bodyNoPayload = { playerId: 'p-1', actionType: 'move' as const };
+      const bodyNoPayload: Parameters<MatchController['submitAction']>[1] = {
+        playerId: 'p-1',
+        actionType: 'move',
+      };
 
-      await controller.submitAction('match-1', bodyNoPayload as any, 'key-xyz');
+      await controller.submitAction('match-1', bodyNoPayload, 'key-xyz');
 
       expect(mockService.submitAction).toHaveBeenCalledWith(
         'match-1',

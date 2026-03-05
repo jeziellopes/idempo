@@ -1,4 +1,5 @@
-import { Kafka, type Producer, type ProducerRecord, type RecordMetadata } from 'kafkajs';
+import type { Kafka} from 'kafkajs';
+import { type Producer, type ProducerRecord, type RecordMetadata } from 'kafkajs';
 import type { BaseEvent } from '@idempo/contracts';
 import { getLogger } from '@idempo/observability';
 
@@ -50,7 +51,7 @@ export abstract class BaseKafkaProducer {
     };
 
     const result = await this.producer.send(record);
-    logger.debug({ topic, eventId: event.eventId, type: (event as any).type }, 'Event published');
+    logger.debug({ topic, eventId: event.eventId, type: event.type }, 'Event published');
     return result;
   }
 

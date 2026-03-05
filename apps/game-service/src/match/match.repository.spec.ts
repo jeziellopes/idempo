@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type pg from 'pg';
 import { MatchRepository } from './match.repository.js';
 
 describe('MatchRepository', () => {
@@ -7,7 +8,7 @@ describe('MatchRepository', () => {
 
   beforeEach(() => {
     mockQuery = vi.fn();
-    repo = new MatchRepository({ query: mockQuery } as any);
+    repo = new MatchRepository({ query: mockQuery } as unknown as pg.Pool);
   });
 
   // ── createMatch ──────────────────────────────────────────────────────────────

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 
 // Prevent passport from running real strategy logic when jwt-auth.guard is imported
 vi.mock('@nestjs/passport', () => ({
@@ -12,28 +14,32 @@ vi.mock('@nestjs/passport', () => ({
 }));
 
 import { ProxyController } from './proxy.controller.js';
+import type { ProxyFactory } from './proxy.factory.js';
+
+type MockConfigService = Pick<ConfigService, 'getOrThrow'>;
+type MockProxyFactory = Pick<ProxyFactory, 'getProxy'>;
 
 describe('ProxyController', () => {
   let mockProxyHandler: ReturnType<typeof vi.fn>;
-  let mockConfig: { getOrThrow: ReturnType<typeof vi.fn> };
-  let mockProxyFactory: { getProxy: ReturnType<typeof vi.fn> };
+  let mockConfig: MockConfigService;
+  let mockProxyFactory: MockProxyFactory;
   let controller: ProxyController;
 
   beforeEach(() => {
     mockProxyHandler = vi.fn();
     mockConfig = { getOrThrow: vi.fn().mockReturnValue('http://service:3000') };
     mockProxyFactory = { getProxy: vi.fn().mockReturnValue(mockProxyHandler) };
-    controller = new ProxyController(mockConfig as any, mockProxyFactory as any);
+    controller = new ProxyController(mockConfig as ConfigService, mockProxyFactory as ProxyFactory);
   });
 
   // Helper: build lightweight req/res stubs
   const makeStubs = (headersSent = false) => ({
-    req: { headers: {} as Record<string, string | undefined> } as any,
+    req: { headers: {} as Record<string, string | undefined> } as Partial<Request>,
     res: {
       headersSent,
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
-    } as any,
+    } as Partial<Response>,
   });
 
   // ── Individual proxy methods ────────────────────────────────────────────────
@@ -48,7 +54,7 @@ describe('ProxyController', () => {
   ] as const)('%s() reads the correct env key and calls the proxy handler', (method, envKey) => {
     const { req, res } = makeStubs();
 
-    (controller as any)[method](req, res);
+    (controller as Record<string, (req: unknown, res: unknown) => void>)[method](req, res);
 
     expect(mockConfig.getOrThrow).toHaveBeenCalledWith(envKey);
     expect(mockProxyHandler).toHaveBeenCalledOnce();

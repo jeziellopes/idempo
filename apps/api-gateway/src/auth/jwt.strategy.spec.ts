@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
+import type { ConfigService } from '@nestjs/config';
 
 vi.mock('@nestjs/passport', () => ({
   PassportStrategy: vi.fn().mockImplementation(() =>
@@ -15,12 +16,14 @@ vi.mock('passport-jwt', () => ({
 
 import { JwtStrategy, type JwtPayload } from './jwt.strategy.js';
 
+type MockConfigService = Pick<ConfigService, 'getOrThrow'>;
+
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
 
   beforeAll(() => {
-    const mockConfig = { getOrThrow: vi.fn().mockReturnValue('super-secret-jwt-key-16+') };
-    strategy = new JwtStrategy(mockConfig as any);
+    const mockConfig: MockConfigService = { getOrThrow: vi.fn().mockReturnValue('super-secret-jwt-key-16+') };
+    strategy = new JwtStrategy(mockConfig as ConfigService);
   });
 
   it('returns the JWT payload unchanged from validate()', () => {
@@ -30,8 +33,8 @@ describe('JwtStrategy', () => {
   });
 
   it('can be instantiated without throwing when given a ConfigService', () => {
-    const mockConfig = { getOrThrow: vi.fn().mockReturnValue('another-secret-key-!!') };
+    const mockConfig: MockConfigService = { getOrThrow: vi.fn().mockReturnValue('another-secret-key-!!') };
 
-    expect(() => new JwtStrategy(mockConfig as any)).not.toThrow();
+    expect(() => new JwtStrategy(mockConfig as ConfigService)).not.toThrow();
   });
 });

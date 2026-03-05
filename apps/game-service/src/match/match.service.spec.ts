@@ -10,6 +10,45 @@ vi.mock('uuid', () => ({ v4: vi.fn(() => 'test-uuid') }));
 import { MatchService } from './match.service.js';
 import { TICK_INTERVAL_MS, MIN_PLAYERS, MAX_PLAYERS } from './match.types.js';
 import { TOPICS } from '@idempo/contracts';
+import type { MatchRepository } from './match.repository.js';
+import type { MatchGateway } from './match.gateway.js';
+import type { KafkaProducerService } from '../kafka/kafka-producer.service.js';
+import type { SubmitActionDto } from './match.service.js';
+
+type MockRepo = {
+  [K in keyof Pick<
+    MatchRepository,
+    | 'createMatch'
+    | 'findMatch'
+    | 'countActivePlayers'
+    | 'addPlayer'
+    | 'getPlayers'
+    | 'startMatch'
+    | 'finishMatch'
+    | 'insertAction'
+    | 'findAction'
+    | 'updatePlayerPosition'
+    | 'applyDamage'
+    | 'addScore'
+    | 'finaliseScores'
+  >]: ReturnType<typeof vi.fn>;
+};
+
+type MockGateway = {
+  [K in keyof Pick<MatchGateway, 'broadcastMatchState'>]: ReturnType<typeof vi.fn>;
+};
+
+type MockKafka = {
+  [K in keyof Pick<KafkaProducerService, 'send'>]: ReturnType<typeof vi.fn>;
+};
+
+type MatchServiceInternals = MatchService & {
+  _finishMatch(matchId: string, winnerId: string | null): Promise<void>;
+  _onLobbyTimeout(matchId: string): Promise<void>;
+  _startTickLoop(matchId: string): void;
+  _onMatchTimeout(matchId: string): Promise<void>;
+  _addPlayerToMatch(matchId: string, playerId: string, username: string, playerIndex: number): Promise<void>;
+};
 
 const makeMatch = (status = 'PENDING', id = 'match-1') => ({
   id,
@@ -36,10 +75,11 @@ const makePlayer = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('MatchService', () => {
-  let mockRepo: Record<string, ReturnType<typeof vi.fn>>;
-  let mockGateway: { broadcastMatchState: ReturnType<typeof vi.fn> };
-  let mockKafka: { send: ReturnType<typeof vi.fn> };
+  let mockRepo: MockRepo;
+  let mockGateway: MockGateway;
+  let mockKafka: MockKafka;
   let service: MatchService;
+  let internalService: MatchServiceInternals;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -63,7 +103,12 @@ describe('MatchService', () => {
     mockGateway = { broadcastMatchState: vi.fn() };
     mockKafka = { send: vi.fn().mockResolvedValue(undefined) };
 
-    service = new MatchService(mockRepo as any, mockGateway as any, mockKafka as any);
+    service = new MatchService(
+      mockRepo as unknown as MatchRepository,
+      mockGateway as unknown as MatchGateway,
+      mockKafka as unknown as KafkaProducerService,
+    );
+    internalService = service as unknown as MatchServiceInternals;
   });
 
   afterEach(() => {
@@ -190,9 +235,9 @@ describe('MatchService', () => {
 
     it('defaults useStamp to false when the field is undefined (??-branch)', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
-      const dtoNoStamp = { actionId: 'action-2', actionType: 'attack' as const, payload: {} };
+      const dtoNoStamp: SubmitActionDto = { actionId: 'action-2', actionType: 'attack', payload: {} };
 
-      await service.submitAction('match-1', 'player-1', dtoNoStamp as any);
+      await service.submitAction('match-1', 'player-1', dtoNoStamp);
 
       expect(mockKafka.send).toHaveBeenCalledOnce();
       const [, msg] = mockKafka.send.mock.calls[0]!;
@@ -206,7 +251,7 @@ describe('MatchService', () => {
     it('is a no-op when match does not exist', async () => {
       mockRepo.findMatch.mockResolvedValue(null);
 
-      await (service as any)._finishMatch('match-1', null);
+      await internalService._finishMatch('match-1', null);
 
       expect(mockRepo.finaliseScores).not.toHaveBeenCalled();
       expect(mockRepo.finishMatch).not.toHaveBeenCalled();
@@ -215,7 +260,7 @@ describe('MatchService', () => {
     it('is a no-op when match is already FINISHED', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('FINISHED'));
 
-      await (service as any)._finishMatch('match-1', null);
+      await internalService._finishMatch('match-1', null);
 
       expect(mockRepo.finaliseScores).not.toHaveBeenCalled();
       expect(mockRepo.finishMatch).not.toHaveBeenCalled();
@@ -225,7 +270,7 @@ describe('MatchService', () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
       mockRepo.getPlayers.mockResolvedValue([makePlayer({ finalScore: 200 })]);
 
-      await (service as any)._finishMatch('match-1', 'player-1');
+      await internalService._finishMatch('match-1', 'player-1');
 
       expect(mockRepo.finaliseScores).toHaveBeenCalledWith('match-1');
       expect(mockRepo.finishMatch).toHaveBeenCalledWith('match-1');
@@ -249,7 +294,7 @@ describe('MatchService', () => {
     it('broadcasts match:cancelled and does not start when count < MIN_PLAYERS', async () => {
       mockRepo.countActivePlayers.mockResolvedValue(MIN_PLAYERS - 1);
 
-      await (service as any)._onLobbyTimeout('match-1');
+      await internalService._onLobbyTimeout('match-1');
 
       expect(mockGateway.broadcastMatchState).toHaveBeenCalledWith('match-1', { event: 'match:cancelled' });
       expect(mockRepo.startMatch).not.toHaveBeenCalled();
@@ -259,7 +304,7 @@ describe('MatchService', () => {
       mockRepo.countActivePlayers.mockResolvedValue(MIN_PLAYERS);
       mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
 
-      await (service as any)._onLobbyTimeout('match-1');
+      await internalService._onLobbyTimeout('match-1');
 
       expect(mockRepo.startMatch).toHaveBeenCalledWith('match-1');
     });
@@ -271,7 +316,7 @@ describe('MatchService', () => {
     it('clears the interval and does not call getPlayers when match is not ACTIVE', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('FINISHED'));
 
-      (service as any)._startTickLoop('match-1');
+      internalService._startTickLoop('match-1');
       await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
 
       expect(mockRepo.getPlayers).not.toHaveBeenCalled();
@@ -285,7 +330,7 @@ describe('MatchService', () => {
         .mockResolvedValueOnce([makePlayer({ alive: true })])          // tick: alive count
         .mockResolvedValueOnce([makePlayer({ finalScore: 100 })]);     // _finishMatch: event
 
-      (service as any)._startTickLoop('match-1');
+      internalService._startTickLoop('match-1');
       await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
 
       expect(mockRepo.finaliseScores).toHaveBeenCalledWith('match-1');
@@ -299,7 +344,7 @@ describe('MatchService', () => {
         makePlayer({ playerId: 'player-2', alive: true }),
       ]);
 
-      (service as any)._startTickLoop('match-1');
+      internalService._startTickLoop('match-1');
       await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
 
       expect(mockGateway.broadcastMatchState).toHaveBeenCalledWith(
@@ -334,7 +379,7 @@ describe('MatchService', () => {
       ]);
       mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
 
-      await (service as any)._onMatchTimeout('match-1');
+      await internalService._onMatchTimeout('match-1');
 
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.winnerId).toBe('player-2');
@@ -347,7 +392,7 @@ describe('MatchService', () => {
       ]);
       mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
 
-      await (service as any)._onMatchTimeout('match-1');
+      await internalService._onMatchTimeout('match-1');
 
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.winnerId).toBe('player-1');
@@ -361,7 +406,7 @@ describe('MatchService', () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
       mockRepo.getPlayers.mockResolvedValue([makePlayer({ finalScore: 0 })]);
 
-      await (service as any)._finishMatch('match-1', null);
+      await internalService._finishMatch('match-1', null);
 
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.winnerId).toBe('');
@@ -379,7 +424,7 @@ describe('MatchService', () => {
         .mockResolvedValueOnce([makePlayer({ alive: false })])   // tick: alive check
         .mockResolvedValueOnce([makePlayer({ finalScore: 0 })]); // _finishMatch: event
 
-      (service as any)._startTickLoop('match-1');
+      internalService._startTickLoop('match-1');
       await vi.advanceTimersByTimeAsync(TICK_INTERVAL_MS);
 
       expect(mockRepo.finaliseScores).toHaveBeenCalledWith('match-1');
@@ -395,7 +440,7 @@ describe('MatchService', () => {
       mockRepo.addPlayer.mockResolvedValue(undefined);
 
       // playerIndex=7 > MAX_PLAYERS(6): idx clamped to 6, spawns[6] undefined → spawns[0]
-      await (service as any)._addPlayerToMatch('match-1', 'player-1', 'Alice', 7);
+      await internalService._addPlayerToMatch('match-1', 'player-1', 'Alice', 7);
 
       expect(mockRepo.addPlayer).toHaveBeenCalledWith('match-1', 'player-1', 'Alice', 0, 0);
     });
