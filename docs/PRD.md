@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** 2026-03-02  
-**Status:** Draft  
+**Status:** Active  
 **Related:** [SPEC.md](SPEC.md) · [API.md](API.md) · [GAME.md](GAME.md) · [ROADMAP.md](../ROADMAP.md) · [RUNBOOK.md](RUNBOOK.md) · [README.md](../README.md)
 
 ---

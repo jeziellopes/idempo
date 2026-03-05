@@ -5,7 +5,7 @@
 **A production-grade distributed systems reference built as a real-time tactical arena game — where the idempotency token is the game's core resource.**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/jeziellopes/idempo/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/jeziellopes/idempo/actions)
-[![Status](https://img.shields.io/badge/status-draft-orange?style=flat-square)](#project-status)
+[![Status](https://img.shields.io/badge/status-in%20development-blue?style=flat-square)](#project-status)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
 <br>
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -21,7 +21,7 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)](https://prometheus.io)
 [![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white)](https://grafana.com)
 
-> ⚠️ **Architecture design in progress — not ready for development.**
+> 🚧 **Active development** — Layer 0 + Iteration 1 complete with E2E coverage. Iteration 2 in progress.
 
 </div>
 
@@ -53,7 +53,7 @@ This project exists to demonstrate — concretely and runnably — what top-tier
 
 ## Architecture
 
-> Draft — subject to change.
+> Active development — architecture stable, features expanding per [ROADMAP.md](ROADMAP.md).
 
 ```mermaid
 graph TB
@@ -295,23 +295,35 @@ An iteration is only **done** when both commands exit green. See [ROADMAP.md](RO
 
 | Deliverable | Status |
 |---|---|
-| Architecture diagram | 🟡 Draft |
-| PRD (`PRD.md`) | 🟡 Draft |
-| Technical specification (`SPEC.md`) | 🟡 Draft |
-| Game mechanics (`GAME.md`) | 🟡 Draft |
-| API contracts (`API.md`) | 🟡 Draft |
-| Build roadmap (`ROADMAP.md`) | 🟡 Draft |
-| Demo runbook (`RUNBOOK.md`) | 🟡 Draft |
-| Observability plan (`OBSERVABILITY.md`) | 🟡 Draft |
-| Deployment & scaling (`DEPLOYMENT.md`) | 🟡 Draft |
-| ADR: monorepo (`docs/adr/001-monorepo.md`) | 🟡 Draft |
-| Monorepo scaffold | ⬜ Not started |
-| Shared packages (`contracts`, `kafka`, `observability`) | ⬜ Not started |
-| Core services | ⬜ Not started |
-| Marketplace Saga | ⬜ Not started |
-| Observability stack | ⬜ Not started |
+| **Documentation** | |
+| PRD, SPEC, API, GAME, RUNBOOK, OBSERVABILITY, DEPLOYMENT | ✅ Active |
+| Architecture diagram | ✅ Active |
+| Build roadmap (`ROADMAP.md`) | ✅ Active |
+| ADR: monorepo (`docs/adr/001-monorepo.md`) | ✅ Complete |
+| **Layer 0 — Boilerplate** | |
+| Monorepo scaffold (Nx + pnpm) | ✅ Complete |
+| Shared packages (`@idempo/contracts`, `kafka`, `observability`, `idempotency`, `circuit-breaker`) | ✅ Complete |
+| Infrastructure (`docker-compose.yml`, Kafka, PostgreSQL, Redis, Jaeger, Prometheus, Grafana) | ✅ Complete |
+| API Gateway (auth, proxy, rate limiting, health checks) | ✅ Complete |
+| E2E test framework (`apps/e2e`) | ✅ Complete |
+| **Iteration 1 — Playable Arena** | |
+| Game Service (match lifecycle, idempotency, Stamp mechanics) | ✅ Complete |
+| Combat Service (damage calc, event-driven) | ✅ Complete |
+| Leaderboard Service (CQRS, Redis cache) | ✅ Complete |
+| Arena UI (Next.js, WebSocket, live leaderboard) | ✅ Complete |
+| E2E tests (iter1.e2e.ts) | ✅ Passing |
+| **Iteration 2 — Rewards & Inventory** | |
+| Reward Service | 🔵 In progress |
+| Wallet Service | ⬜ Not started |
+| Inventory Service | ⬜ Not started |
+| Wallet + Inventory UI | ⬜ Not started |
+| **Iteration 3 — Marketplace & Saga** | |
+| Marketplace Service (Saga orchestrator) | ⬜ Not started |
+| Circuit breaker integration | ⬜ Not started |
+| **Iteration 4 — Observability & Hardening** | |
+| Grafana dashboards | ⬜ Not started |
+| Alert rules | ⬜ Not started |
 | Kubernetes manifests | ⬜ Not started |
-| Frontend (arena + economy UI) | ⬜ Not started |
 
 ---
 
