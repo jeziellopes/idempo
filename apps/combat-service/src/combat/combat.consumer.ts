@@ -1,10 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { BaseKafkaConsumer } from '@idempo/kafka';
 import { BaseKafkaProducer } from '@idempo/kafka';
 import { TOPICS } from '@idempo/contracts';
 import type { BaseEvent } from '@idempo/contracts';
-import { CombatEngineService } from './combat-engine.service.js';
+import type { CombatEngineService } from './combat-engine.service.js';
 import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('combat-service:consumer');
