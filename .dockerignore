@@ -1,0 +1,22 @@
+# Source files — Docker only needs pre-built artefacts.
+# Build on host first with `pnpm build`, then `docker compose up -d --build`.
+node_modules/
+**/node_modules/
+apps/
+packages/
+
+# Keep the build artefacts that the Dockerfile stages COPY from.
+!dist/
+!apps/web/.next/
+!apps/web/public/
+
+# Nx cache
+.nx/
+
+# Secrets / logs
+.env
+*.log
+
+# VCS
+.git/
+.github/

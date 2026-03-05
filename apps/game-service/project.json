@@ -2,28 +2,33 @@
   "name": "game-service",
   "targets": {
     "build": {
-      "executor": "@nx/node:build",
+      "executor": "@nx/js:swc",
       "options": {
         "outputPath": "dist/apps/game-service",
         "main": "apps/game-service/src/main.ts",
         "tsConfig": "apps/game-service/tsconfig.json",
+        "swcrc": ".swcrc",
         "assets": []
       }
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "game-service:build"
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "@nx/vitest:test",
       "options": {
-        "configFile": "apps/game-service/vite.config.ts"
+        "configFile": "apps/game-service/vitest.config.ts",
+        "passWithNoTests": true
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/game-service/src/**/*.ts"]
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",

@@ -90,4 +90,27 @@ describe('GlobalExceptionFilter', () => {
     const body = jsonFn.mock.calls[0][0] as ErrorBody;
     expect(body.correlationId).toBe('unknown');
   });
+
+  it('extracts string body.message when it is a plain string (not an array)', () => {
+    const host = makeHost(vi.fn(), jsonFn);
+    filter.catch(
+      new HttpException({ message: 'field is required', statusCode: 400 }, HttpStatus.BAD_REQUEST),
+      host,
+    );
+    expect(jsonFn).toHaveBeenCalledWith(expect.objectContaining({ detail: 'field is required' }));
+  });
+
+  it('falls back to 500 for non-Error, non-HttpException throws (e.g. thrown string)', () => {
+    const host = makeHost(vi.fn(), jsonFn);
+    filter.catch('some-string-error', host);
+    expect(jsonFn).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'INTERNAL_SERVER_ERROR' }),
+    );
+  });
+
+  it('uses HTTP_<n> code for unmapped status codes', () => {
+    const host = makeHost(vi.fn(), jsonFn);
+    filter.catch(new HttpException('teapot', 418), host);
+    expect(jsonFn).toHaveBeenCalledWith(expect.objectContaining({ error: 'HTTP_418' }));
+  });
 });

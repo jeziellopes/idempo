@@ -1,0 +1,25 @@
+{
+  "name": "e2e",
+  "targets": {
+    "e2e": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "configFile": "apps/e2e/vitest.config.ts",
+        "passWithNoTests": false
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/e2e/src/**/*.ts"]
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/e2e/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:e2e"]
+}

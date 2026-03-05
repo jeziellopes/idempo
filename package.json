@@ -4,28 +4,41 @@
   "version": "0.0.0",
   "description": "Production-grade distributed systems reference built as a real-time tactical arena game",
   "scripts": {
-    "build": "nx run-many --target=build --all",
+    "build": "nx run-many --target=build --all && node bundle-services.mjs",
     "test": "nx run-many --target=test --all",
+    "coverage": "nx run-many --target=test --all -- --coverage",
+    "e2e": "nx run e2e:e2e",
+    "e2e:local": "API_URL=http://localhost:3001 nx run e2e:e2e --skipNxCache",
+    "e2e:ui": "nx run e2e-ui:e2e",
     "lint": "nx run-many --target=lint --all",
     "typecheck": "nx run-many --target=typecheck --all",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "start": "pnpm build && cp -n .env.example .env; docker compose up -d --build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down -v",
     "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.4",
+    "@nx/esbuild": "^22.5.3",
     "@nx/eslint": "^22.5.3",
+    "@nx/eslint-plugin": "^22.5.4",
     "@nx/js": "^22.5.3",
     "@nx/nest": "^22.5.3",
     "@nx/next": "^22.5.3",
     "@nx/node": "^22.5.3",
+    "@nx/vitest": "^22.5.3",
+    "@playwright/test": "^1.50.0",
     "@swc-node/register": "~1.11.1",
+    "@swc/cli": "^0.8.0",
     "@swc/core": "~1.15.18",
     "@swc/helpers": "~0.5.15",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "esbuild": "^0.27.3",
     "eslint": "^9.0.0",
     "nx": "^22.5.3",
     "prettier": "^3.5.0",
@@ -38,8 +51,12 @@
     "node": ">=24",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.30.3",
   "pnpm": {
-    "onlyBuiltDependencies": ["@swc/core", "nx", "@nestjs/core"]
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "nx",
+      "@nestjs/core"
+    ]
   }
 }

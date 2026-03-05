@@ -36,6 +36,7 @@ export interface MatchReward {
 
 export interface PlayerScore {
   playerId: string;
+  username: string;
   score: number;
 }
 

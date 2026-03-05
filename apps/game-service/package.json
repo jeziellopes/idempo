@@ -1,0 +1,26 @@
+{
+  "name": "@idempo/game-service",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@idempo/contracts": "workspace:*",
+    "@idempo/idempotency": "workspace:*",
+    "@idempo/kafka": "workspace:*",
+    "@idempo/observability": "workspace:*",
+    "@nestjs/common": "^11.1.14",
+    "@nestjs/core": "^11.1.14",
+    "@nestjs/platform-express": "^11.1.14",
+    "@nestjs/websockets": "^11.1.14",
+    "@nestjs/platform-socket.io": "^11.1.14",
+    "pg": "^8.13.3",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1",
+    "kafkajs": "^2.2.4",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.14",
+    "@types/uuid": "^10.0.0"
+  }
+}

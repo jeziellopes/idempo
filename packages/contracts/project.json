@@ -9,6 +9,12 @@
         "tsConfig": "packages/contracts/tsconfig.json"
       }
     },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["packages/contracts/src/**/*.ts"]
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {

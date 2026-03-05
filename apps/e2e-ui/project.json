@@ -1,0 +1,36 @@
+{
+  "name": "e2e-ui",
+  "projectType": "application",
+  "sourceRoot": "apps/e2e-ui/src",
+  "prefix": "e2e-ui",
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright test",
+        "cwd": "apps/e2e-ui"
+      },
+      "configurations": {
+        "headed": {
+          "command": "playwright test --headed --project=chromium"
+        },
+        "debug": {
+          "command": "playwright test --debug"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/e2e-ui/src/**/*.ts"]
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/e2e-ui/tsconfig.json"
+      }
+    }
+  },
+  "tags": ["scope:app", "type:e2e"]
+}

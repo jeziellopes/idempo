@@ -7,7 +7,7 @@
     "production": [
       "default",
       "!{projectRoot}/**/*.spec.ts",
-      "!{projectRoot}/jest.config.ts",
+      "!{projectRoot}/vitest.config.ts",
       "!{projectRoot}/src/test-setup.ts"
     ],
     "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json"]

@@ -2,9 +2,10 @@
   "name": "@idempo/idempotency",
   "targets": {
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "@nx/vitest:test",
       "options": {
-        "configFile": "packages/idempotency/vite.config.ts"
+        "configFile": "packages/idempotency/vitest.config.ts",
+        "passWithNoTests": true
       }
     },
     "build": {
@@ -13,6 +14,12 @@
         "outputPath": "dist/packages/idempotency",
         "main": "packages/idempotency/src/index.ts",
         "tsConfig": "packages/idempotency/tsconfig.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["packages/idempotency/src/**/*.ts"]
       }
     },
     "typecheck": {

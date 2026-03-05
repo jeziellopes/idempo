@@ -1,0 +1,78 @@
+name: Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Determine base and head SHAs for affected check
+        id: affected
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "base=${{ github.event.before }}" >> $GITHUB_OUTPUT
+            echo "head=${{ github.event.after }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=lint
+
+      - name: Typecheck affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=typecheck
+
+      - name: Test affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=test
+
+      - name: Lint root configuration files
+        run: pnpm eslint eslint.config.mjs bundle-services.mjs apps/web/next.config.ts apps/web/postcss.config.mjs
+
+      - name: Build affected projects
+        run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=build
+
+      - name: Run full coverage on main/develop
+        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+        run: pnpm coverage
+
+      - name: Upload coverage report
+        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30

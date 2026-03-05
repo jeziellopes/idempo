@@ -1,15 +1,19 @@
 import { All, Controller, Req, Res, UseGuards } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-import { ProxyFactory } from './proxy.factory.js';
+import type { ProxyFactory } from './proxy.factory.js';
 
 /**
  * Wildcard proxy controller — every route is JWT-protected.
  * Guards run before the controller method, so the JWT is validated
  * before the request is forwarded to the downstream service.
  *
- * Path rewriting (@see ProxyFactory): /api/matches → /matches
+ * Route pattern `prefix{/*splat}` uses Express 5 optional-group syntax so that
+ * both the bare resource path (e.g. `/api/matches`) and sub-paths
+ * (e.g. `/api/matches/:id/join`) are captured by a single decorator.
+ * The plain `prefix*splat` pattern requires ≥1 char after the prefix and
+ * therefore fails to match the bare collection endpoint.
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -20,37 +24,37 @@ export class ProxyController {
   ) {}
 
   // ── Game Service ────────────────────────────────────────────────
-  @All('matches*splat')
+  @All('matches{/*splat}')
   proxyGame(@Req() req: Request, @Res() res: Response): void {
     this.forward('GAME_SERVICE_URL', req, res);
   }
 
   // ── Wallet Service ───────────────────────────────────────────────
-  @All('wallet*splat')
+  @All('wallet{/*splat}')
   proxyWallet(@Req() req: Request, @Res() res: Response): void {
     this.forward('WALLET_SERVICE_URL', req, res);
   }
 
   // ── Inventory Service ────────────────────────────────────────────
-  @All('inventory*splat')
+  @All('inventory{/*splat}')
   proxyInventory(@Req() req: Request, @Res() res: Response): void {
     this.forward('INVENTORY_SERVICE_URL', req, res);
   }
 
   // ── Marketplace Service ──────────────────────────────────────────
-  @All('marketplace*splat')
+  @All('marketplace{/*splat}')
   proxyMarketplace(@Req() req: Request, @Res() res: Response): void {
     this.forward('MARKETPLACE_SERVICE_URL', req, res);
   }
 
   // ── Leaderboard Service ──────────────────────────────────────────
-  @All('leaderboard*splat')
+  @All('leaderboard{/*splat}')
   proxyLeaderboard(@Req() req: Request, @Res() res: Response): void {
     this.forward('LEADERBOARD_SERVICE_URL', req, res);
   }
 
   // ── Notification Service ─────────────────────────────────────────
-  @All('notifications*splat')
+  @All('notifications{/*splat}')
   proxyNotifications(@Req() req: Request, @Res() res: Response): void {
     this.forward('NOTIFICATION_SERVICE_URL', req, res);
   }

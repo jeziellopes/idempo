@@ -1,0 +1,34 @@
+{
+  "name": "combat-service",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "options": {
+        "outputPath": "dist/apps/combat-service",
+        "main": "apps/combat-service/src/main.ts",
+        "tsConfig": "apps/combat-service/tsconfig.json",
+        "swcrc": ".swcrc",
+        "assets": []
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": { "buildTarget": "combat-service:build" }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": { "configFile": "apps/combat-service/vitest.config.ts", "passWithNoTests": true }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/combat-service/src/**/*.ts"]
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc --noEmit -p apps/combat-service/tsconfig.json" }
+    }
+  },
+  "tags": ["scope:app"]
+}

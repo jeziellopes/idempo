@@ -2,28 +2,33 @@
   "name": "api-gateway",
   "targets": {
     "build": {
-      "executor": "@nx/node:build",
+      "executor": "@nx/js:swc",
       "options": {
         "outputPath": "dist/apps/api-gateway",
         "main": "apps/api-gateway/src/main.ts",
         "tsConfig": "apps/api-gateway/tsconfig.json",
+        "swcrc": ".swcrc",
         "assets": []
       }
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "api-gateway:build"
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "@nx/vitest:test",
       "options": {
-        "configFile": "apps/api-gateway/vite.config.ts"
+        "configFile": "apps/api-gateway/vitest.config.ts",
+        "passWithNoTests": true
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint"
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/api-gateway/src/**/*.ts"]
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",

@@ -7,8 +7,8 @@ import {
   HttpStatus,
   NotImplementedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import type { JwtService } from '@nestjs/jwt';
+import type { ConfigService } from '@nestjs/config';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginDto {

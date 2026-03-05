@@ -1,0 +1,184 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build all projects (required for Docker images)
+        run: pnpm build
+
+      - name: Start Docker services with rebuilt images
+        run: docker compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for all Docker services to be healthy..."
+          CRITICAL_SERVICES=("idempo-kafka" "idempo-game-db" "idempo-leaderboard-db" "idempo-redis" "idempo-api-gateway" "idempo-game-service" "idempo-combat-service" "idempo-leaderboard-service")
+          MAX_ATTEMPTS=120
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ALL_HEALTHY=true
+            for service in "${CRITICAL_SERVICES[@]}"; do
+              STATE=$(docker compose ps $service --no-trunc --format '{{.State}}' 2>/dev/null || echo "")
+              if [[ "$STATE" != "running" ]]; then
+                ALL_HEALTHY=false
+                break
+              fi
+            done
+
+            if $ALL_HEALTHY; then
+              # Double-check all services report healthy status
+              UNHEALTHY=$(docker compose ps --no-trunc --format '{{.State}}' 2>/dev/null | grep -v "healthy\|exited" | wc -l)
+              if [ "$UNHEALTHY" -eq 0 ]; then
+                echo "All services are healthy!"
+                exit 0
+              fi
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting for services to be healthy..."
+            sleep 2
+          done
+
+          echo "ERROR: Services failed to reach healthy state within timeout"
+          docker compose ps
+          docker compose logs --tail=50
+          exit 1
+
+      - name: Run backend E2E tests
+        run: pnpm nx run e2e:e2e
+        env:
+          API_URL: http://localhost:3001
+
+      - name: Upload backend E2E report on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down -v
+
+  e2e-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build all projects (required for Docker images)
+        run: pnpm build
+
+      - name: Start Docker services with rebuilt images
+        run: docker compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for all Docker services to be healthy..."
+          CRITICAL_SERVICES=("idempo-kafka" "idempo-game-db" "idempo-leaderboard-db" "idempo-redis" "idempo-api-gateway" "idempo-game-service" "idempo-combat-service" "idempo-leaderboard-service" "idempo-grafana" "idempo-web")
+          MAX_ATTEMPTS=120
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ALL_HEALTHY=true
+            for service in "${CRITICAL_SERVICES[@]}"; do
+              STATE=$(docker compose ps $service --no-trunc --format '{{.State}}' 2>/dev/null || echo "")
+              if [[ "$STATE" != "running" ]]; then
+                ALL_HEALTHY=false
+                break
+              fi
+            done
+
+            if $ALL_HEALTHY; then
+              # Double-check all services report healthy status
+              UNHEALTHY=$(docker compose ps --no-trunc --format '{{.State}}' 2>/dev/null | grep -v "healthy\|exited" | wc -l)
+              if [ "$UNHEALTHY" -eq 0 ]; then
+                echo "All services are healthy!"
+                exit 0
+              fi
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting for services to be healthy..."
+            sleep 2
+          done
+
+          echo "ERROR: Services failed to reach healthy state within timeout"
+          docker compose ps
+          docker compose logs --tail=50
+          exit 1
+
+      - name: Run UI E2E tests
+        run: pnpm nx run e2e-ui:e2e
+
+      - name: Upload Playwright report on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test results on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-e2e-results
+          path: test-results/
+          retention-days: 7
+
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down -v

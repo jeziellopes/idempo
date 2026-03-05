@@ -42,6 +42,14 @@ export default [
     },
   },
   {
-    ignores: ['dist', 'build', '.next', 'node_modules', 'coverage', '**/*.js'],
+    ignores: [
+      '**/.nx/**',
+      '**/.next/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '**/*.js',
+    ],
   },
 ];
