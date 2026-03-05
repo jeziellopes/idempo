@@ -55,7 +55,7 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh(@Body() _dto: RefreshDto): never {
     throw new NotImplementedException(
       'Token refresh is not yet implemented. Planned for Phase 1 (Identity Service).',
