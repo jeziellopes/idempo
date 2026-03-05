@@ -1,8 +1,8 @@
 import { All, Controller, Req, Res, UseGuards } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-import type { ProxyFactory } from './proxy.factory.js';
+import { ProxyFactory } from './proxy.factory.js';
 
 /**
  * Wildcard proxy controller — every route is JWT-protected.

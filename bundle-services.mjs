@@ -54,7 +54,6 @@ for (const service of SERVICES) {
         '@nestjs/typeorm/dist/common/typeorm.utils',
         'class-transformer/storage',
         'cache-manager',
-        'fastify',
       ],
     });
     console.log(`  ✓ dist/apps/${service}/main.js`);

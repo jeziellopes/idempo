@@ -41,6 +41,26 @@ export default [
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
+  // NestJS services/controllers/strategies/modules use constructor injection which requires 
+  // runtime imports for dependency resolution, even if they appear type-only to ESLint.
+  // Disable consistent-type-imports rule for these architectural files.
+  {
+    files: [
+      'apps/**/src/**/*.controller.ts',
+      'apps/**/src/**/*.service.ts',
+      'apps/**/src/**/*.strategy.ts',
+      'apps/**/src/**/*.module.ts',
+      'apps/**/src/**/*.guard.ts',
+      'apps/**/src/**/*.interceptor.ts',
+      'apps/**/src/**/*.factory.ts',
+      'packages/**/src/**/*.service.ts',
+      'packages/**/src/**/*.module.ts',
+      'packages/**/src/**/*.factory.ts',
+    ],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
   {
     ignores: [
       '**/.nx/**',
