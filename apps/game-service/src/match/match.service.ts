@@ -238,6 +238,11 @@ export class MatchService {
   private async _onMatchTimeout(matchId: string): Promise<void> {
     logger.info({ matchId }, 'Match time limit reached — determining winner by score');
     const players = await this.repo.getPlayers(matchId);
+    if (players.length === 0) {
+      logger.warn({ matchId }, 'Match timed out with no players — finishing with no winner');
+      await this._finishMatch(matchId, null);
+      return;
+    }
     const winner = players.reduce((a, b) => (a.score >= b.score ? a : b));
     await this._finishMatch(matchId, winner.playerId);
   }
