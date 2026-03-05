@@ -266,7 +266,7 @@ export class MatchService {
         { type: 'currency', amount: 500 },
         { type: 'stamps', amount: 3 },
       ],
-      finalScores: players.map((p) => ({ playerId: p.playerId, score: p.finalScore })),
+      finalScores: players.map((p) => ({ playerId: p.playerId, username: p.username, score: p.finalScore })),
       timestamp: new Date().toISOString(),
     };
 
