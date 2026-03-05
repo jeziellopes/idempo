@@ -9,7 +9,7 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
-import type { MatchService} from './match.service.js';
+import { MatchService } from './match.service.js';
 import { type SubmitActionDto } from './match.service.js';
 import type { ActionType } from './match.types.js';
 

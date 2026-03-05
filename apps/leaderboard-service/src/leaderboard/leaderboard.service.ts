@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { LeaderboardRepository} from './leaderboard.repository.js';
+import { LeaderboardRepository } from './leaderboard.repository.js';
 import { type RankEntry } from './leaderboard.repository.js';
 
 @Injectable()

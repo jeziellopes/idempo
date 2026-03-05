@@ -5,8 +5,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import type { MatchRepository } from './match.repository.js';
-import type { MatchGateway } from './match.gateway.js';
+import { MatchRepository } from './match.repository.js';
+import { MatchGateway } from './match.gateway.js';
 import {
   SPAWN_POSITIONS,
   MIN_PLAYERS,
@@ -18,7 +18,7 @@ import {
   type Match,
   type MatchPlayer,
 } from './match.types.js';
-import type { KafkaProducerService } from '../kafka/kafka-producer.service.js';
+import { KafkaProducerService } from '../kafka/kafka-producer.service.js';
 import { getLogger } from '@idempo/observability';
 import { TOPICS } from '@idempo/contracts';
 
