@@ -26,7 +26,7 @@ export class MatchEventsConsumer extends BaseKafkaConsumer<BaseEvent> {
     // Update score for each player from finalScores
     await Promise.all(
       matchEvent.finalScores.map((entry) =>
-        this.repo.upsertScore(entry.playerId, entry.playerId, entry.score),
+        this.repo.upsertScore(entry.playerId, entry.username, entry.score),
       ),
     );
   }

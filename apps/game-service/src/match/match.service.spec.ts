@@ -278,7 +278,12 @@ describe('MatchService', () => {
         TOPICS.MATCH_EVENTS,
         expect.objectContaining({
           key: 'match-1',
-          value: expect.objectContaining({ type: 'MatchFinishedEvent', matchId: 'match-1', winnerId: 'player-1' }),
+          value: expect.objectContaining({
+            type: 'MatchFinishedEvent',
+            matchId: 'match-1',
+            winnerId: 'player-1',
+            finalScores: [{ playerId: 'player-1', username: 'Alice', score: 200 }],
+          }),
         }),
       );
       expect(mockGateway.broadcastMatchState).toHaveBeenCalledWith(

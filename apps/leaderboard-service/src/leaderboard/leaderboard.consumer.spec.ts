@@ -32,7 +32,7 @@ const makeBaseEvent = (type: string): BaseEvent => ({
   timestamp: new Date().toISOString(),
 });
 
-const makeMatchFinishedEvent = (scores: { playerId: string; score: number }[]): MatchFinishedEvent => ({
+const makeMatchFinishedEvent = (scores: { playerId: string; username: string; score: number }[]): MatchFinishedEvent => ({
   ...makeBaseEvent('MatchFinishedEvent'),
   type: 'MatchFinishedEvent',
   matchId: 'match-1',
@@ -78,15 +78,15 @@ describe('MatchEventsConsumer.handle()', () => {
 
   it('calls upsertScore once per finalScores entry on MatchFinishedEvent', async () => {
     const event = makeMatchFinishedEvent([
-      { playerId: 'player-1', score: 200 },
-      { playerId: 'player-2', score: 150 },
+      { playerId: 'player-1', username: 'Alice', score: 200 },
+      { playerId: 'player-2', username: 'Bob', score: 150 },
     ]);
 
     await consumer.handle(event);
 
     expect(mockRepo.upsertScore).toHaveBeenCalledTimes(2);
-    expect(mockRepo.upsertScore).toHaveBeenCalledWith('player-1', 'player-1', 200);
-    expect(mockRepo.upsertScore).toHaveBeenCalledWith('player-2', 'player-2', 150);
+    expect(mockRepo.upsertScore).toHaveBeenCalledWith('player-1', 'Alice', 200);
+    expect(mockRepo.upsertScore).toHaveBeenCalledWith('player-2', 'Bob', 150);
   });
 
   it('handles MatchFinishedEvent with empty finalScores without error', async () => {
