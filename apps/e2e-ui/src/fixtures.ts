@@ -1,4 +1,4 @@
-import { Page, APIRequestContext } from '@playwright/test';
+import type { Page, APIRequestContext } from '@playwright/test';
 
 /**
  * Auth fixture: Direct API login and JWT injection into browser storage.

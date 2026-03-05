@@ -1,9 +1,10 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import type { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { BaseKafkaConsumer } from '@idempo/kafka';
 import { TOPICS } from '@idempo/contracts';
 import type { MatchFinishedEvent, BaseEvent } from '@idempo/contracts';
-import { LeaderboardRepository } from './leaderboard.repository.js';
+import type { LeaderboardRepository } from './leaderboard.repository.js';
 import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('leaderboard-service:consumer');

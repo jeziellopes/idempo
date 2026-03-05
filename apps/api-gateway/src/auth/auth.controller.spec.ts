@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnauthorizedException, NotImplementedException } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import type { ConfigService } from '@nestjs/config';
-import { AuthController, LoginDto, RefreshDto } from './auth.controller.js';
+import type { LoginDto, RefreshDto } from './auth.controller.js';
+import { AuthController } from './auth.controller.js';
 
 function makeJwtService(token = 'signed.jwt.token'): JwtService {
   return { sign: vi.fn().mockReturnValue(token) } as unknown as JwtService;

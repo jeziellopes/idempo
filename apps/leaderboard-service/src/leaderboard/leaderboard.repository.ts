@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
-import pg from 'pg';
-import Redis from 'ioredis';
+import type pg from 'pg';
+import type Redis from 'ioredis';
 import { DATABASE_POOL } from '../database/database.module.js';
 import { REDIS_CLIENT } from '../redis/redis.module.js';
 

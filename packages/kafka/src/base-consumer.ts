@@ -1,8 +1,9 @@
+import type {
+  Kafka} from 'kafkajs';
 import {
   type Consumer,
   type EachMessagePayload,
-  type KafkaMessage,
-  Kafka,
+  type KafkaMessage
 } from 'kafkajs';
 import type { BaseEvent } from '@idempo/contracts';
 import { getLogger } from '@idempo/observability';

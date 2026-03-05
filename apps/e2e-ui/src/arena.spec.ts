@@ -1,4 +1,5 @@
-import { test, expect, APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { setupAuthenticatedPage } from './fixtures';
 
 test.describe('Arena Combat Flow', () => {

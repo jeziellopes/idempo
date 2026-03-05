@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import pg from 'pg';
+import type pg from 'pg';
 import { DATABASE_POOL } from '../database/database.module.js';
 import type { Match, MatchPlayer, PlayerAction, ActionType } from './match.types.js';
 

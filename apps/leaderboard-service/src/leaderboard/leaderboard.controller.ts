@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { LeaderboardRepository } from './leaderboard.repository.js';
+import type { LeaderboardRepository } from './leaderboard.repository.js';
 
 @Controller('leaderboard')
 export class LeaderboardController {

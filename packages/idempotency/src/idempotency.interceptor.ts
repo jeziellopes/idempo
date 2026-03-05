@@ -7,7 +7,8 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Observable, of } from 'rxjs';
+import type { Observable} from 'rxjs';
+import { of } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import type { Request, Response } from 'express';
 

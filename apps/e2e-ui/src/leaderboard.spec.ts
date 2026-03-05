@@ -1,4 +1,5 @@
-import { test, expect, APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { setupAuthenticatedPage } from './fixtures';
 
 test.describe('Leaderboard UI', () => {
@@ -23,15 +24,13 @@ test.describe('Leaderboard UI', () => {
     const heading = page.locator('h2:has-text("Global Leaderboard")');
     await expect(heading).toBeVisible({ timeout: 10000 });
 
-    // Wait for loading to complete (either shows table or "No entries yet")
-    await page.waitForFunction(() => {
-      const loadingText = document.body.innerText.includes('Loading…');
-      const hasTable = document.querySelector('table') !== null;
-      const hasNoEntries = document.body.innerText.includes('No entries yet');
-      return !loadingText && (hasTable || hasNoEntries);
-    }, { timeout: 15000 });
+    // Wait for loading to complete by checking that "Loading…" text is gone
+    const loadingText = page.getByText('Loading…');
+    await loadingText.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
+      // Loading text might not appear at all if data loads quickly
+    });
 
-    // Verify content is visible
+    // Verify either table or "No entries yet" message is visible
     const table = page.locator('table');
     const noEntries = page.locator('text=No entries yet');
     

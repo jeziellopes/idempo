@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { LeaderboardRepository, type RankEntry } from './leaderboard.repository.js';
+import type { LeaderboardRepository} from './leaderboard.repository.js';
+import { type RankEntry } from './leaderboard.repository.js';
 
 @Injectable()
 export class LeaderboardService {

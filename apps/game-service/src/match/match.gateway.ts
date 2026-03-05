@@ -1,13 +1,14 @@
+import type {
+  OnGatewayConnection,
+  OnGatewayDisconnect} from '@nestjs/websockets';
 import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
   MessageBody,
-  ConnectedSocket,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
+  ConnectedSocket
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('game-service:ws');
