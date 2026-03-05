@@ -39,10 +39,8 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      # Cluster identity — required for KRaft; fixed value for determinism in local dev only.
-      # WARNING: This value is publicly known. You MUST rotate it (generate a new base64 UUID)
-      # before using this file in any non-development or shared environment.
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qg==
+      # Cluster identity — required for KRaft. Uses default for local dev; override in .env for other environments.
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qg==}
       # Topics
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_NUM_PARTITIONS: "3"
