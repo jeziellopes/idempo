@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LeaderboardController } from './leaderboard.controller.js';
-import { LeaderboardService } from './leaderboard.service.js';
+import type { LeaderboardService } from './leaderboard.service.js';
 import type { RankEntry } from './leaderboard.repository.js';
 
 type MockService = Pick<LeaderboardService, 'getTop100'>;
