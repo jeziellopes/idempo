@@ -1,9 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-import type { LeaderboardRepository } from './leaderboard.repository.js';
+import { LeaderboardService } from './leaderboard.service.js';
 
 @Controller('leaderboard')
 export class LeaderboardController {
-  constructor(private readonly repo: LeaderboardRepository) {}
+  constructor(private readonly leaderboardService: LeaderboardService) {}
 
   /**
    * GET /api/leaderboard
@@ -11,7 +11,6 @@ export class LeaderboardController {
    */
   @Get()
   async getLeaderboard() {
-    const { entries, stale } = await this.repo.getTop100WithStaleFallback();
-    return { entries, meta: { stale, count: entries.length } };
+    return this.leaderboardService.getTop100();
   }
 }
