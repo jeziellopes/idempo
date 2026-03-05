@@ -263,8 +263,9 @@ graph LR
 Every iteration has a working, runnable version. The two commands below validate any iteration end-to-end:
 
 ```bash
-# 0. One-time setup — copy the env template and set JWT_SECRET (required)
+# 0. One-time setup — copy the env template
 cp .env.example .env
+# Edit .env: set JWT_SECRET (required). For shared/staging environments, also set KAFKA_CLUSTER_ID.
 
 # 1. Build all app artifacts on the host (Nx handles caching — fast on repeat runs)
 pnpm build
