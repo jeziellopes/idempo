@@ -7,8 +7,8 @@ import {
   HttpStatus,
   NotImplementedException,
 } from '@nestjs/common';
-import type { JwtService } from '@nestjs/jwt';
-import type { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginDto {
@@ -55,7 +55,7 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   refresh(@Body() _dto: RefreshDto): never {
     throw new NotImplementedException(
       'Token refresh is not yet implemented. Planned for Phase 1 (Identity Service).',
