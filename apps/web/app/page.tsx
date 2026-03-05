@@ -5,6 +5,21 @@ import { api } from '../lib/api';
 import { useMatchStore } from '../store/match.store';
 import { v4 as uuidv4 } from 'uuid';
 
+// Decodes the `sub` claim from a JWT for client-side identity comparison only.
+// Signature verification is intentionally skipped here because the server
+// validates every request's JWT signature before acting on it.
+function getTokenSub(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts[1]) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64)) as { sub?: string };
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function LobbyPage() {
   const router = useRouter();
   const { setMatch } = useMatchStore();
@@ -21,7 +36,9 @@ export default function LobbyPage() {
       // Production auth flow (signup, login UI, session management) will be implemented later.
       // For now, this allows users to enter username and transparently get a JWT token.
       const existingToken = localStorage.getItem('authToken');
-      if (!existingToken) {
+      const tokenOwner = existingToken ? getTokenSub(existingToken) : null;
+      if (tokenOwner !== username.trim()) {
+        if (existingToken) localStorage.removeItem('authToken');
         const loginRes = await api.login(username.trim(), 'idempo');
         localStorage.setItem('authToken', loginRes.accessToken);
       }
