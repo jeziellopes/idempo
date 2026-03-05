@@ -397,6 +397,16 @@ describe('MatchService', () => {
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.winnerId).toBe('player-1');
     });
+
+    it('finishes with no winner when the players array is empty', async () => {
+      mockRepo.getPlayers.mockResolvedValue([]);
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+
+      await internalService._onMatchTimeout('match-1');
+
+      const [, msg] = mockKafka.send.mock.calls[0]!;
+      expect(msg.value.winnerId).toBe('');
+    });
   });
 
   // ── branch: null winnerId in _finishMatch ────────────────────────────────────
