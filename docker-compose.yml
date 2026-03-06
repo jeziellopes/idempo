@@ -13,6 +13,7 @@ volumes:
   wallet_db_data:
   marketplace_db_data:
   inventory_db_data:
+  identity_db_data:
   redis_data:
   prometheus_data:
   grafana_data:
@@ -162,6 +163,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── PostgreSQL — identity_db ────────────────────────────────────────────
+  identity-db:
+    image: postgres:17-alpine
+    container_name: idempo-identity-db
+    ports:
+      - "5443:5432"
+    environment:
+      POSTGRES_DB: identity_db
+      POSTGRES_USER: idempo
+      POSTGRES_PASSWORD: idempo
+    volumes:
+      - identity_db_data:/var/lib/postgresql/data
+      - ./infra/db/identity_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idempo -d identity_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── PostgreSQL — leaderboard_db ──────────────────────────────────────────
   leaderboard-db:
     image: postgres:17-alpine
@@ -293,6 +315,7 @@ services:
       INVENTORY_SERVICE_URL: http://inventory-service:3006
       MARKETPLACE_SERVICE_URL: http://marketplace-service:3008
       NOTIFICATION_SERVICE_URL: http://notification-service:3009
+      IDENTITY_SERVICE_URL: http://identity-service:3010
       CORS_ORIGIN: http://localhost:3000
       OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
@@ -396,6 +419,37 @@ services:
       - idempo
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Identity Service (port 3010) ────────────────────────────────────────
+  identity-service:
+    build:
+      context: .
+      target: nestjs
+      args:
+        APP_NAME: identity-service
+    container_name: idempo-identity-service
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: "3010"
+      JWT_SECRET: ${JWT_SECRET:-idempo-local-dev-secret-change-in-prod}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-idempo-local-refresh-secret-change-in-prod}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      IDENTITY_DB_URL: postgres://idempo:idempo@identity-db:5432/identity_db
+      WEB_REDIRECT_URL: http://localhost:3000
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    depends_on:
+      identity-db:
+        condition: service_healthy
+    networks:
+      - idempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3010/api/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
