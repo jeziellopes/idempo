@@ -4,7 +4,7 @@ import { Kafka } from 'kafkajs';
 import { BaseKafkaConsumer } from '@idempo/kafka';
 import { TOPICS } from '@idempo/contracts';
 import type { MatchFinishedEvent, BaseEvent } from '@idempo/contracts';
-import type { LeaderboardRepository } from './leaderboard.repository.js';
+import { LeaderboardRepository } from './leaderboard.repository.js';
 import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('leaderboard-service:consumer');

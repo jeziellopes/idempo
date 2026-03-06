@@ -5,7 +5,7 @@ import { BaseKafkaConsumer } from '@idempo/kafka';
 import { BaseKafkaProducer } from '@idempo/kafka';
 import { TOPICS } from '@idempo/contracts';
 import type { BaseEvent } from '@idempo/contracts';
-import type { CombatEngineService } from './combat-engine.service.js';
+import { CombatEngineService } from './combat-engine.service.js';
 import { getLogger } from '@idempo/observability';
 
 const logger = getLogger('combat-service:consumer');
