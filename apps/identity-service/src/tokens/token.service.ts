@@ -1,6 +1,6 @@
 import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { Pool } from 'pg';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { PG_POOL } from '../database/database.module.js';
 
 /** Refresh tokens are valid for 7 days. */
