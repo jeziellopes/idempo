@@ -134,6 +134,9 @@ importers:
       class-validator:
         specifier: ^0.15.1
         version: 0.15.1
+      cookie-parser:
+        specifier: ^1.4.7
+        version: 1.4.7
       http-proxy-middleware:
         specifier: ^3.0.5
         version: 3.0.5
@@ -156,6 +159,9 @@ importers:
         specifier: ^11.0.0
         version: 11.1.0
     devDependencies:
+      '@types/cookie-parser':
+        specifier: ^1.4.8
+        version: 1.4.10(@types/express@5.0.6)
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
