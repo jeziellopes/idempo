@@ -19,11 +19,12 @@
 9. [Folder Structure](#9-folder-structure)
 
 > Repository strategy decision → [adr/001-monorepo.md](adr/001-monorepo.md)  
+> Auth identity strategy → [adr/002-github-oauth-identity.md](adr/002-github-oauth-identity.md)  
 > Observability plan (metrics, dashboards, tracing, alerting) → [OBSERVABILITY.md](OBSERVABILITY.md)  
 > Deployment & scaling (Kubernetes, Kafka partitioning, DB scaling) → [DEPLOYMENT.md](DEPLOYMENT.md)  
 > For product requirements, user stories, acceptance criteria, and build roadmap — see [PRD.md](PRD.md)
 
-**Related:** [PRD.md](PRD.md) · [API.md](API.md) · [GAME.md](GAME.md) · [OBSERVABILITY.md](OBSERVABILITY.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [adr/001-monorepo.md](adr/001-monorepo.md)
+**Related:** [PRD.md](PRD.md) · [API.md](API.md) · [GAME.md](GAME.md) · [OBSERVABILITY.md](OBSERVABILITY.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [adr/001-monorepo.md](adr/001-monorepo.md) · [adr/002-github-oauth-identity.md](adr/002-github-oauth-identity.md)
 
 ---
 
@@ -96,13 +97,26 @@ graph TB
 
 | Attribute | Detail |
 |---|---|
-| Responsibility | Auth (JWT), rate limiting, correlation ID injection, WebSocket upgrade, request proxying |
+| Responsibility | Auth (JWT cookie extraction), rate limiting, correlation ID injection, WebSocket upgrade, request proxying, gateway-level identity injection |
 | Exposes | `REST /api/**`, `WS /game`, `GET /health` |
-| Downstream | Routes to all core services via `http-proxy-middleware` |
-| Key libraries | `@nestjs/throttler`, `passport-jwt`, `@nestjs/config`, `@nestjs/axios`, `http-proxy-middleware`, `@nestjs/terminus`, `class-validator` |
-| Env validation | Joi schema via `@nestjs/config`; startup fails if `JWT_SECRET` is absent |
-| Proxy strategy | `http-proxy-middleware` wildcard forwarding; per-service URLs from env (`GAME_SERVICE_URL`, `WALLET_SERVICE_URL`, etc.) |
-| Auth tokens | Access token 15 min; `POST /auth/refresh` stub (501) in Phase 0, full impl in Phase 1 |
+| Downstream | Routes to all core services via `http-proxy-middleware`; auth routes pass through to `identity-service` via `AuthProxyController` (no JWT guard) |
+| Key libraries | `@nestjs/throttler`, `passport-jwt`, `cookie-parser`, `@nestjs/config`, `http-proxy-middleware`, `@nestjs/terminus` |
+| Env validation | Joi schema; startup fails on missing `JWT_SECRET` or `IDENTITY_SERVICE_URL` |
+| Identity injection | `ProxyController.forwardAuthenticated()` strips client-supplied `X-Player-Id`/`X-Username`, then re-injects from the verified JWT sub + username claim |
+| Auth tokens | Access token extracted from httpOnly `accessToken` cookie (falls back to `Authorization: Bearer`); issued and rotated by `identity-service` |
+
+---
+
+### 3.1a Identity Service
+
+| Attribute | Detail |
+|---|---|
+| Responsibility | GitHub OAuth 2.0 flow, user upsert, JWT issuance, refresh-token rotation, session lifecycle |
+| Exposes | `GET /api/auth/github`, `GET /api/auth/github/callback`, `POST /api/auth/refresh`, `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/test-token` |
+| Database | PostgreSQL — `identity_db` (`users` + `refresh_tokens` tables) |
+| Token strategy | Access token (15 min) + refresh token (7 days) stored as httpOnly cookies; JTI-based single-use rotation |
+| Key libraries | `passport-github2`, `passport-jwt`, `@nestjs/jwt`, `@nestjs/config`, `pg` |
+| Decision | [ADR-002](adr/002-github-oauth-identity.md) |
 
 ---
 
