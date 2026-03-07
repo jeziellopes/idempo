@@ -8,11 +8,10 @@ type Direction = 'north' | 'south' | 'east' | 'west';
 
 interface Props {
   matchId: string;
-  playerId: string;
   disabled?: boolean;
 }
 
-export function ActionPanel({ matchId, playerId, disabled = false }: Props) {
+export function ActionPanel({ matchId, disabled = false }: Props) {
   const { stampBalance, spendStamp } = useMatchStore();
   const [useStamp, setUseStamp] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -30,7 +29,7 @@ export function ActionPanel({ matchId, playerId, disabled = false }: Props) {
     }
 
     try {
-      const res = await api.submitAction(matchId, playerId, actionType, payload, idempotencyKey, useStamp);
+      const res = await api.submitAction(matchId, actionType, payload, idempotencyKey, useStamp);
       setStatus(res.duplicate ? '↩ Duplicate (idempotent)' : '✓ Accepted');
     } catch (err) {
       setStatus(`Error: ${(err as Error).message}`);

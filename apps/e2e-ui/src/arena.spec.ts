@@ -14,16 +14,15 @@ test.describe('Arena Combat Flow', () => {
   });
 
   test('should create match and enter arena successfully', async ({ page }) => {
-    // Setup: Authenticate and inject token
+    // Setup: Authenticate and inject cookie
     await setupAuthenticatedPage(page, context);
 
-    // Navigate to lobby
+    // Navigate to lobby — identity comes from the JWT cookie, no username input needed
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Enter username and find match
-    const usernameInput = page.locator('input[placeholder*="username"]');
-    await usernameInput.fill(`Arena-${Date.now()}`);
+    // Find Match button should be visible once the session check resolves
+    await page.locator('button:has-text("Find Match")').waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('button:has-text("Find Match")').click();
 
     // Wait for redirect to arena URL
@@ -45,15 +44,14 @@ test.describe('Arena Combat Flow', () => {
   });
 
   test('should render arena page with action panel', async ({ page }) => {
-    // Setup: Authenticate and inject token
+    // Setup: Authenticate and inject cookie
     await setupAuthenticatedPage(page, context);
 
-    // Navigate to arena
+    // Navigate to arena via lobby — username comes from the JWT cookie
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const usernameInput = page.locator('input[placeholder*="username"]');
-    await usernameInput.fill(`ActionTest-${Date.now()}`);
+    await page.locator('button:has-text("Find Match")').waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('button:has-text("Find Match")').click();
 
     // Wait for arena

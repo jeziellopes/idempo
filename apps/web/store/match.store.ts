@@ -22,7 +22,9 @@ interface MatchStore {
   stampBalance: number;
   lastWinnerId: string | null;
 
-  setMatch: (matchId: string, playerId: string, username: string) => void;
+  /** Set player identity fetched from GET /auth/me (JWT sub + username). */
+  hydrate: (playerId: string, username: string) => void;
+  setMatch: (matchId: string) => void;
   setStatus: (status: MatchStatus) => void;
   setPlayers: (players: PlayerState[]) => void;
   spendStamp: () => boolean;
@@ -39,8 +41,10 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
   stampBalance: 5, // default starting stamps for v1
   lastWinnerId: null,
 
-  setMatch: (matchId, playerId, username) =>
-    set({ matchId, playerId, username, status: 'PENDING' }),
+  hydrate: (playerId, username) => set({ playerId, username }),
+
+  setMatch: (matchId) =>
+    set({ matchId, status: 'PENDING' }),
 
   setStatus: (status) => set({ status }),
 

@@ -1,59 +1,67 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
 import { useMatchStore } from '../store/match.store';
-import { v4 as uuidv4 } from 'uuid';
+import type { UserDto } from '../lib/api';
 
-// Decodes the `sub` claim from a JWT for client-side identity comparison only.
-// Signature verification is intentionally skipped here because the server
-// validates every request's JWT signature before acting on it.
-function getTokenSub(token: string): string | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3 || !parts[1]) return null;
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(base64)) as { sub?: string };
-    return typeof payload.sub === 'string' ? payload.sub : null;
-  } catch {
-    return null;
-  }
-}
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001/api';
 
 export default function LobbyPage() {
   const router = useRouter();
-  const { setMatch } = useMatchStore();
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { hydrate, setMatch } = useMatchStore();
+  const [user, setUser] = useState<UserDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const join = async () => {
-    if (!username.trim()) return;
-    setLoading(true);
+  // On mount: check if the user already has a valid session (httpOnly cookie).
+  // api.getMe() will redirect to /signin automatically on a 401.
+  useEffect(() => {
+    api
+      .getMe()
+      .then((me) => {
+        setUser(me);
+        hydrate(me.playerId, me.username);
+      })
+      .catch(() => {
+        // Non-401 errors (network failures etc.) — redirect to sign-in.
+        router.push('/signin');
+      })
+      .finally(() => setLoading(false));
+  }, [hydrate, router]);
+
+  const findMatch = async () => {
+    if (!user) return;
+    setJoining(true);
     setError(null);
     try {
-      // TEMPORARY: Auto-authenticate with hardcoded password
-      // Production auth flow (signup, login UI, session management) will be implemented later.
-      // For now, this allows users to enter username and transparently get a JWT token.
-      const existingToken = localStorage.getItem('authToken');
-      const tokenOwner = existingToken ? getTokenSub(existingToken) : null;
-      if (tokenOwner !== username.trim()) {
-        if (existingToken) localStorage.removeItem('authToken');
-        const loginRes = await api.login(username.trim(), 'idempo');
-        localStorage.setItem('authToken', loginRes.accessToken);
-      }
-
-      // Create match
-      const playerId = uuidv4();
-      const res = await api.createMatch(playerId, username.trim());
-      setMatch(res.matchId, playerId, username.trim());
+      // Identity comes from the JWT cookie — no need to send playerId/username in body.
+      const res = await api.createMatch();
+      setMatch(res.matchId);
       router.push(`/arena/${res.matchId}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      setJoining(false);
     }
   };
+
+  const signOut = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } finally {
+      router.push('/signin');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-gray-500 text-sm animate-pulse">Checking session…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto space-y-8 mt-16">
@@ -64,26 +72,31 @@ export default function LobbyPage() {
         </p>
       </div>
 
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-4">
-        <h2 className="font-semibold text-gray-200">Enter the Arena</h2>
-        <input
-          type="text"
-          placeholder="Your username"
-          value={username}
-          maxLength={20}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && void join()}
-          className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
-        />
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button
-          onClick={() => void join()}
-          disabled={!username.trim() || loading}
-          className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors"
-        >
-          {loading ? 'Joining…' : 'Find Match'}
-        </button>
-      </div>
+      {user && (
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-200">
+              Welcome, <span className="text-amber-400">{user.username}</span>
+            </h2>
+            <button
+              onClick={() => void signOut()}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+
+          <button
+            onClick={() => void findMatch()}
+            disabled={joining}
+            className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-semibold rounded-lg transition-colors"
+          >
+            {joining ? 'Joining…' : 'Find Match'}
+          </button>
+        </div>
+      )}
 
       <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">How it works</h3>
