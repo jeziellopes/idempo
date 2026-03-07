@@ -2,18 +2,16 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController } from './auth.controller.js';
+import { GithubStrategy } from './github.strategy.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { UsersModule } from '../users/users.module.js';
+import { TokensModule } from '../tokens/tokens.module.js';
 
-/**
- * Auth module — owns JWT validation (JwtStrategy + JwtAuthGuard).
- * The /auth/** routes are now proxied to the identity-service via
- * AuthProxyController in ProxyModule; this module no longer exposes
- * any auth REST endpoints directly.
- */
 @Module({
   imports: [
     ConfigModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,8 +20,10 @@ import { JwtStrategy } from './jwt.strategy.js';
         signOptions: { expiresIn: '15m' },
       }),
     }),
+    UsersModule,
+    TokensModule,
   ],
-  providers: [JwtStrategy],
-  exports: [JwtModule, PassportModule],
+  providers: [GithubStrategy, JwtStrategy],
+  controllers: [AuthController],
 })
 export class AuthModule {}

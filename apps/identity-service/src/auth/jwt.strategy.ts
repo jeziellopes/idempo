@@ -3,22 +3,12 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
+import type { JwtPayload } from '@idempo/contracts';
 
-export interface JwtPayload {
-  /** users.id UUID — stable server-assigned identity (see identity-service). */
-  sub: string;
-  username: string;
-  iat?: number;
-  exp?: number;
-}
-
-/**
- * Extracts the JWT from the `accessToken` httpOnly cookie (set by identity-service),
- * with a fallback to the Authorization: Bearer header for CLI / curl usage.
- */
 function extractFromCookieThenBearer(req: Request): string | null {
-  const fromCookie = (req.cookies as Record<string, string | undefined>)?.accessToken;
+  const fromCookie = req.cookies?.accessToken as string | undefined;
   if (fromCookie) return fromCookie;
+  // Fall back to Authorization: Bearer for CLI / curl usage
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
   return null;

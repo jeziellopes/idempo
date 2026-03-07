@@ -15,7 +15,7 @@ export default defineConfig({
         functions: 90,
         branches: 90,
         statements: 90,
-        'src/filters/global-exception.filter.ts': { lines: 100, functions: 100, branches: 100, statements: 100 },
+        'src/auth/auth.controller.ts': { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
   },
