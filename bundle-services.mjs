@@ -14,7 +14,7 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const SERVICES = ['api-gateway', 'game-service', 'combat-service', 'leaderboard-service'];
+const SERVICES = ['api-gateway', 'game-service', 'combat-service', 'leaderboard-service', 'identity-service'];
 
 for (const service of SERVICES) {
   const entryPoint = join(__dirname, `dist/apps/${service}/src/main.js`);
