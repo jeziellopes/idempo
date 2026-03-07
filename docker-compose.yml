@@ -441,7 +441,7 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       IDENTITY_DB_URL: postgres://idempo:idempo@identity-db:5432/identity_db
-      WEB_REDIRECT_URL: http://localhost:3000
+      WEB_REDIRECT_URL: ${WEB_REDIRECT_URL:-}
       OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       identity-db:
