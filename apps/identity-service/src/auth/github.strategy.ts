@@ -18,10 +18,20 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     config: ConfigService,
     private readonly userService: UserService,
   ) {
+    const clientID = config.get<string>('GITHUB_CLIENT_ID', '');
+    const clientSecret = config.get<string>('GITHUB_CLIENT_SECRET', '');
+    if (!clientID || !clientSecret) {
+      // Credentials not configured — GitHub OAuth routes will return 503.
+      // The /auth/test-token bypass still works for local dev/CI.
+      console.warn(
+        '[GithubStrategy] GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is not set. ' +
+          'GitHub OAuth login will be unavailable.',
+      );
+    }
     super({
-      clientID: config.getOrThrow<string>('GITHUB_CLIENT_ID'),
-      clientSecret: config.getOrThrow<string>('GITHUB_CLIENT_SECRET'),
-      callbackURL: config.getOrThrow<string>('WEB_REDIRECT_URL'),
+      clientID: clientID || 'not-configured',
+      clientSecret: clientSecret || 'not-configured',
+      callbackURL: config.get<string>('WEB_REDIRECT_URL', 'http://localhost:3000'),
       scope: ['read:user'],
     });
   }

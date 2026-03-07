@@ -10,8 +10,18 @@ export const envValidationSchema = Joi.object({
   // GitHub OAuth Application credentials
   // Register at https://github.com/settings/developers
   // Callback URL: <host>/api/auth/github/callback
-  GITHUB_CLIENT_ID: Joi.string().required(),
-  GITHUB_CLIENT_SECRET: Joi.string().required(),
+  // Optional in development/test — the /auth/test-token bypass works without them.
+  // Required in production.
+  GITHUB_CLIENT_ID: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().default(''),
+  }),
+  GITHUB_CLIENT_SECRET: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().default(''),
+  }),
 
   // JWT signing secrets — must be ≥16 chars
   JWT_SECRET: Joi.string().min(16).required(),
