@@ -52,7 +52,13 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
 
   const resHeaders = new Headers();
   upstreamRes.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) resHeaders.set(key, value);
+    if (HOP_BY_HOP.has(key.toLowerCase())) return;
+    // Use append for set-cookie so multiple cookies are not collapsed into one.
+    if (key.toLowerCase() === 'set-cookie') {
+      resHeaders.append(key, value);
+    } else {
+      resHeaders.set(key, value);
+    }
   });
 
   return new NextResponse(upstreamRes.body, {
