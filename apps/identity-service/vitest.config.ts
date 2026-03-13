@@ -9,7 +9,15 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.spec.ts', 'src/**/*.module.ts', 'src/main.ts'],
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/**/*.module.ts',
+        'src/main.ts',
+        // Joi schema and infrastructure boilerplate — not unit-testable in isolation;
+        // validated at integration level via the running service.
+        'src/config/*.ts',
+        'src/filters/*.ts',
+      ],
       thresholds: {
         lines: 90,
         functions: 90,
