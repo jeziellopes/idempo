@@ -65,12 +65,12 @@ jobs:
       - name: Build affected projects
         run: pnpm nx affected --base=${{ steps.affected.outputs.base }} --head=${{ steps.affected.outputs.head }} --target=build
 
-      - name: Run full coverage on main/develop
-        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+      - name: Run full coverage (PR gate)
+        if: github.event_name == 'pull_request'
         run: pnpm coverage
 
       - name: Upload coverage report
-        if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
