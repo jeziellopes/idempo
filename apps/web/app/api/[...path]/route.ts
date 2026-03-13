@@ -45,7 +45,7 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body: hasBody ? (req.body as any) : undefined,
     redirect: 'manual', // pass 302s to the browser — critical for OAuth initiation
-    // @ts-ignore — Node.js fetch requires duplex:'half' for streaming request bodies
+    // @ts-expect-error — Node.js fetch requires duplex:'half' for streaming request bodies
     duplex: 'half',
     cache: 'no-store',
   });
