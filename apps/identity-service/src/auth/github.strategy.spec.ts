@@ -19,12 +19,12 @@ import { GithubStrategy } from './github.strategy.js';
 
 function makeConfig(): ConfigService {
   return {
-    getOrThrow: vi.fn().mockImplementation((key: string) => {
+    get: vi.fn().mockImplementation((key: string, def?: unknown) => {
       if (key === 'GITHUB_CLIENT_ID') return 'gh-client-id';
       if (key === 'GITHUB_CLIENT_SECRET') return 'gh-client-secret';
-      throw new Error(`Missing ${key}`);
+      if (key === 'GITHUB_CALLBACK_URL') return 'http://localhost:3010/api/auth/github/callback';
+      return def;
     }),
-    get: vi.fn().mockReturnValue(3010),
   } as unknown as ConfigService;
 }
 
@@ -41,6 +41,18 @@ describe('GithubStrategy', () => {
   beforeAll(() => {
     userService = makeUserService(sampleUser);
     strategy = new GithubStrategy(makeConfig(), userService);
+  });
+
+  it('logs a warning when credentials are not configured', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const emptyConfig = {
+      get: vi.fn().mockReturnValue(''),
+    } as unknown as ConfigService;
+
+    new GithubStrategy(emptyConfig, userService);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('GITHUB_CLIENT_ID'));
+    warnSpy.mockRestore();
   });
 
   it('calls userService.upsert() with mapped GitHub profile fields', async () => {
