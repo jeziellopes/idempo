@@ -78,6 +78,13 @@ describe('AuthController', () => {
     controller = new AuthController(jwtService, config, tokenService);
   });
 
+  // ── GET /auth/github ──────────────────────────────────────────────────────
+  describe('initiateGithubLogin()', () => {
+    it('returns undefined — passport handles the redirect before the body runs', () => {
+      expect(controller.initiateGithubLogin()).toBeUndefined();
+    });
+  });
+
   // ── GET /auth/github/callback ──────────────────────────────────────────────
   describe('githubCallback()', () => {
     it('sets httpOnly accessToken and refreshToken cookies', async () => {
