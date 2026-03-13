@@ -13,11 +13,15 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  // Allow Next.js internals and sign-in page through unconditionally.
+  // Allow Next.js internals, sign-in page, and all API proxy routes through
+  // unconditionally. /api/* is proxied server-side to the API gateway via
+  // next.config rewrites — the OAuth callback lands here and must NOT be
+  // redirected to /signin before it can be handled.
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname === '/signin'
+    pathname === '/signin' ||
+    pathname.startsWith('/api/')
   ) {
     return NextResponse.next();
   }

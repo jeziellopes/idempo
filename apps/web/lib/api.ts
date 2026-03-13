@@ -1,4 +1,8 @@
-const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001/api';
+// Use a relative path so all API calls go through the Next.js server-side
+// rewrite (next.config rewrites /api/* → API gateway). This means a single
+// public hostname works for both the UI and the API, which fixes OAuth
+// callback routing when behind ngrok or a reverse proxy.
+const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? '/api';
 
 /**
  * Generic fetch wrapper.

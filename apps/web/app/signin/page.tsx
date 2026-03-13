@@ -4,7 +4,7 @@
  * which eventually sets an httpOnly accessToken cookie and redirects back to /.
  */
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001/api';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? '/api';
 
 export default function SignInPage() {
   const githubOAuthUrl = `${API_URL}/auth/github`;

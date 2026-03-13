@@ -464,6 +464,10 @@ services:
     container_name: idempo-web
     ports:
       - "3000:3000"
+    environment:
+      # Server-side only — used by next.config rewrites() to proxy /api/* to the
+      # API gateway. Not exposed to the browser (no NEXT_PUBLIC_ prefix).
+      API_GATEWAY_URL: http://api-gateway:3001
     depends_on:
       api-gateway:
         condition: service_healthy
