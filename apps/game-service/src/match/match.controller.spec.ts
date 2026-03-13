@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { MatchController } from './match.controller.js';
 import type { MatchService } from './match.service.js';
 
@@ -7,6 +7,9 @@ type MockMatchService = Pick<
   MatchService,
   'createOrJoinMatch' | 'joinMatch' | 'getMatchState' | 'submitAction'
 >;
+
+/** Helper: build the header args the gateway injects after JWT validation. */
+const authHeaders = (playerId = 'p-1', username = 'Alice') => ({ playerId, username });
 
 describe('MatchController', () => {
   let mockService: MockMatchService;
@@ -25,20 +28,34 @@ describe('MatchController', () => {
   // ── createMatch ──────────────────────────────────────────────────────────────
 
   describe('createMatch()', () => {
-    it('delegates to matchService.createOrJoinMatch with playerId and username', async () => {
-      await controller.createMatch({ playerId: 'p-1', username: 'Alice' });
+    it('reads playerId and username from gateway-injected headers', async () => {
+      const { playerId, username } = authHeaders();
+      await controller.createMatch(playerId, username);
 
       expect(mockService.createOrJoinMatch).toHaveBeenCalledWith('p-1', 'Alice');
+    });
+
+    it('throws UnauthorizedException when X-Player-Id header is absent', () => {
+      expect(() => controller.createMatch(undefined, 'Alice')).toThrow(UnauthorizedException);
+    });
+
+    it('throws UnauthorizedException when X-Username header is absent', () => {
+      expect(() => controller.createMatch('p-1', undefined)).toThrow(UnauthorizedException);
     });
   });
 
   // ── joinMatch ────────────────────────────────────────────────────────────────
 
   describe('joinMatch()', () => {
-    it('delegates to matchService.joinMatch with matchId, playerId, username', async () => {
-      await controller.joinMatch('match-1', { playerId: 'p-2', username: 'Bob' });
+    it('delegates to matchService.joinMatch with matchId from param and identity from headers', async () => {
+      const { playerId, username } = authHeaders('p-2', 'Bob');
+      await controller.joinMatch('match-1', playerId, username);
 
       expect(mockService.joinMatch).toHaveBeenCalledWith('match-1', 'p-2', 'Bob');
+    });
+
+    it('throws UnauthorizedException when identity headers are missing', () => {
+      expect(() => controller.joinMatch('match-1', undefined, undefined)).toThrow(UnauthorizedException);
     });
   });
 
@@ -55,18 +72,22 @@ describe('MatchController', () => {
   // ── submitAction ─────────────────────────────────────────────────────────────
 
   describe('submitAction()', () => {
-    const body = { playerId: 'p-1', actionType: 'attack' as const, payload: { targetId: 'p-2' } };
+    const body = { actionType: 'attack' as const, payload: { targetId: 'p-2' } };
 
-    it('throws BadRequestException synchronously when X-Idempotency-Key header is missing', () => {
-      expect(() => controller.submitAction('match-1', body, undefined)).toThrow(BadRequestException);
+    it('throws BadRequestException when X-Idempotency-Key header is missing', () => {
+      expect(() => controller.submitAction('match-1', body, undefined, 'p-1')).toThrow(BadRequestException);
     });
 
     it('throws BadRequestException for an empty string idempotency key', () => {
-      expect(() => controller.submitAction('match-1', body, '')).toThrow(BadRequestException);
+      expect(() => controller.submitAction('match-1', body, '', 'p-1')).toThrow(BadRequestException);
     });
 
-    it('delegates to matchService.submitAction with the idempotency key as actionId', async () => {
-      await controller.submitAction('match-1', body, 'key-abc');
+    it('throws UnauthorizedException when X-Player-Id header is missing', () => {
+      expect(() => controller.submitAction('match-1', body, 'key-abc', undefined)).toThrow(UnauthorizedException);
+    });
+
+    it('reads playerId from the X-Player-Id header and delegates to matchService', async () => {
+      await controller.submitAction('match-1', body, 'key-abc', 'p-1');
 
       expect(mockService.submitAction).toHaveBeenCalledWith(
         'match-1',
@@ -76,12 +97,9 @@ describe('MatchController', () => {
     });
 
     it('defaults payload to {} when not provided in the body', async () => {
-      const bodyNoPayload: Parameters<MatchController['submitAction']>[1] = {
-        playerId: 'p-1',
-        actionType: 'move',
-      };
+      const bodyNoPayload = { actionType: 'move' as const };
 
-      await controller.submitAction('match-1', bodyNoPayload, 'key-xyz');
+      await controller.submitAction('match-1', bodyNoPayload, 'key-xyz', 'p-1');
 
       expect(mockService.submitAction).toHaveBeenCalledWith(
         'match-1',
@@ -91,7 +109,7 @@ describe('MatchController', () => {
     });
 
     it('passes useStamp through to the service', async () => {
-      await controller.submitAction('match-1', { ...body, useStamp: true }, 'key-stamp');
+      await controller.submitAction('match-1', { ...body, useStamp: true }, 'key-stamp', 'p-1');
 
       expect(mockService.submitAction).toHaveBeenCalledWith(
         'match-1',

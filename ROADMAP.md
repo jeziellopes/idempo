@@ -41,14 +41,15 @@ flowchart LR
   - [x] `ThrottlerGuard` registered as `APP_GUARD` (rate limiting currently inert)
   - [x] Global `ValidationPipe` + `GlobalExceptionFilter` → `{ error, detail, correlationId }`
   - [x] `LoginDto` as validated class (`class-validator`)
-  - [x] JWT expiry 15 min; `POST /auth/refresh` stub (501)
+  - [x] JWT expiry 15 min; `POST /auth/test-token` bypass for E2E; refresh token rotation in `identity-service`
+  - [x] `identity-service` — GitHub OAuth 2.0, stable `playerId` (server-assigned UUID), httpOnly JWT cookie issuance, JTI refresh rotation, `POST /auth/test-token` dev bypass ([ADR-002](docs/adr/002-github-oauth-identity.md))
   - [x] `GET /health` (`@nestjs/terminus`)
   - [x] `ProxyModule` — `http-proxy-middleware` wildcard forwarding to downstream services
   - [x] `/metrics` moved to internal port 9091
 
 **Output:** `nx generate @idempo/service <name>` scaffolds a fully wired NestJS service — Kafka, observability, idempotency, circuit breaker all included.
 
-**Coverage gate:** ≥90% lines/branches/functions on `api-gateway`. 100% on `src/filters/global-exception.filter.ts` and `src/auth/auth.controller.ts` (core request-handling logic). Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
+**Coverage gate:** ≥90% lines/branches/functions on `api-gateway`. 100% on `src/filters/global-exception.filter.ts` (core request-handling logic). 100% on all auth files in `identity-service` (`auth.controller.ts`, `github.strategy.ts`, `jwt.strategy.ts`). Enforced via `@vitest/coverage-v8` — run `pnpm coverage`.
 
 ---
 
@@ -71,7 +72,7 @@ flowchart LR
 
 **Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter1.e2e.ts`
 
-E2E scenario: login → create match → join match → submit Stamp-sealed attack → assert match state update via WebSocket + leaderboard entry visible at `GET /leaderboard/top100`.
+E2E scenario: obtain `accessToken` cookie via `POST /auth/test-token` bypass → create match (no identity in body; gateway injects from JWT) → second player joins with their own cookie → submit Stamp-sealed attack → assert match state update via WebSocket + leaderboard entry visible at `GET /leaderboard/top100`.
 
 ---
 

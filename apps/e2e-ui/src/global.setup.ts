@@ -3,6 +3,7 @@ import type { FullConfig } from '@playwright/test';
 const CHECKS = [
   { name: 'web', url: 'http://localhost:3000/', expectedStatuses: [200] },
   { name: 'api-gateway', url: 'http://localhost:3001/api/health', expectedStatuses: [200] },
+  { name: 'identity-service', url: 'http://localhost:3010/api/health', expectedStatuses: [200] },
   { name: 'game-service', url: 'http://localhost:3002/api/matches/preflight-not-found', expectedStatuses: [404] },
   { name: 'leaderboard-service', url: 'http://localhost:3005/api/leaderboard', expectedStatuses: [200] },
 ];

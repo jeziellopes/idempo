@@ -8,20 +8,44 @@ Each scenario below must be demonstrable and observable in Grafana / Jaeger agai
 
 ## Prerequisites
 
-**Temporary Authentication Note:** The web UI currently uses auto-generated JWT tokens for streamlined testing. When users enter a username, a token is automatically generated with the hardcoded password "idempo". This is a temporary implementation — production-ready authentication (signup, login UI, session management) will be implemented in a future iteration.
+**Authentication:** idempo uses GitHub OAuth. A dedicated `identity-service` issues httpOnly JWT cookies — no passwords.
 
 ```bash
-# Start full local stack
+# Start full local stack (includes identity-service + identity_db)
 docker compose up -d
 
 # Verify all services healthy
 docker compose ps
 
 # Open observability UIs
-open http://localhost:3000   # Web UI (or Grafana if observability enabled)
+open http://localhost:3000   # Web UI (Sign in with GitHub)
 open http://localhost:16686  # Jaeger
 open http://localhost:9090   # Prometheus
 open http://localhost:8080   # DLQ Admin UI (if implemented)
+```
+
+**Browser flow:** visit `http://localhost:3000` → “Sign in with GitHub” → authorise the OAuth app → redirected back with `accessToken` cookie set.
+
+**CLI / script flow:** use the dev-bypass endpoint to obtain a cookie without a browser:
+
+```bash
+# Obtain an accessToken cookie (only works when NODE_ENV != "production")
+PLAYER_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+USERNAME="demo-player"
+
+curl -si -X POST http://localhost:3001/api/auth/test-token \
+  -H 'Content-Type: application/json' \
+  -d "{\"playerId\":\"$PLAYER_ID\",\"username\":\"$USERNAME\"}" \
+  | grep -i 'set-cookie'
+
+# The Set-Cookie header contains:  accessToken=<jwt>; Path=/; HttpOnly; SameSite=Lax
+# Extract the token value:
+TOKEN=$(curl -si -X POST http://localhost:3001/api/auth/test-token \
+  -H 'Content-Type: application/json' \
+  -d "{\"playerId\":\"$PLAYER_ID\",\"username\":\"$USERNAME\"}" \
+  | grep -i 'set-cookie' | grep -oP 'accessToken=\K[^;]+')
+
+COOKIE="accessToken=$TOKEN"
 ```
 
 ---
@@ -33,19 +57,21 @@ open http://localhost:8080   # DLQ Admin UI (if implemented)
 **Setup:** Player spends a Stamp to seal an attack. Client sends the same action twice with identical `actionId` (simulating a retry under lag).
 
 ```bash
-ACTION_ID=$(uuidgen)
+ACTION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 
 # First submission
-curl -X POST http://localhost:4000/api/matches/{matchId}/actions \
-  -H "Authorization: Bearer $JWT" \
+curl -X POST http://localhost:3001/api/matches/{matchId}/actions \
+  -H "Cookie: $COOKIE" \
   -H "X-Idempotency-Key: $ACTION_ID" \
-  -d '{"type":"attack","targetId":"...","useStamp":true}'
+  -H 'Content-Type: application/json' \
+  -d '{"actionType":"attack","payload":{"targetId":"..."},"useStamp":true}'
 
 # Duplicate (same ACTION_ID) — should return original response, no second effect
-curl -X POST http://localhost:4000/api/matches/{matchId}/actions \
-  -H "Authorization: Bearer $JWT" \
+curl -X POST http://localhost:3001/api/matches/{matchId}/actions \
+  -H "Cookie: $COOKIE" \
   -H "X-Idempotency-Key: $ACTION_ID" \
-  -d '{"type":"attack","targetId":"...","useStamp":true}'
+  -H 'Content-Type: application/json' \
+  -d '{"actionType":"attack","payload":{"targetId":"..."},"useStamp":true}'
 ```
 
 **Expected:**

@@ -2,7 +2,7 @@
 
 **Related:** [SPEC.md](SPEC.md) · [GAME.md](GAME.md)
 
-All REST endpoints are routed through the API Gateway at `http://localhost:4000/api`. Every mutating request requires a `Authorization: Bearer <jwt>` header. The gateway injects a `X-Correlation-Id` header on all forwarded requests.
+All REST endpoints are routed through the API Gateway at `http://localhost:3001/api`. Auth routes (`/api/auth/**`) are proxied to the identity-service. Mutating requests to game and economy endpoints require a valid `accessToken` httpOnly cookie (set by the identity-service OAuth flow). The gateway injects a `X-Correlation-Id` header on all forwarded requests.
 
 ---
 
@@ -36,25 +36,81 @@ Used by Kubernetes liveness and readiness probes. No authentication required.
 
 ## 1. Authentication
 
-### `POST /auth/login`
+> All auth routes are proxied by the gateway to `identity-service` (`:3010`).
+> Cookies are httpOnly, SameSite=Lax, path=/.
+
+### `GET /auth/github` — Initiate GitHub OAuth
+
+Redirects the browser to GitHub's OAuth authorization page. No request body.
+
+---
+
+### `GET /auth/github/callback` — GitHub OAuth callback
+
+GitHub redirects here after the user authorises. The identity-service:
+1. Upserts the user in `identity_db.users` (stable UUID `playerId`).
+2. Mints access token (15 min) + refresh token (7 days).
+3. Sets `accessToken` and `refreshToken` as httpOnly cookies.
+4. Redirects the browser to `WEB_REDIRECT_URL` (default `http://localhost:3000`).
+
+---
+
+### `POST /auth/refresh` — Rotate refresh token
+
+```json
+// Cookie required: refreshToken
+// Response 200
+{ "ok": true }
+// New accessToken + refreshToken cookies set on response
+
+// Response 401 — token absent, expired, or revoked
+{ "error": "UNAUTHORIZED", "detail": "Refresh token is invalid or expired.", "correlationId": "uuid" }
+```
+
+Uses JTI-based single-use rotation: old JTI is atomically revoked in `refresh_tokens` and a new JTI is issued.
+
+---
+
+### `GET /auth/me` — Current user identity
+
+```json
+// Cookie required: accessToken
+// Response 200
+{ "playerId": "uuid", "username": "github-login", "avatarUrl": "https://..." }
+
+// Response 401 — cookie absent or expired
+{ "error": "UNAUTHORIZED", "detail": "...", "correlationId": "uuid" }
+```
+
+---
+
+### `POST /auth/logout` — Revoke session
+
+```json
+// Cookie required: accessToken
+// Response 200
+{ "ok": true }
+// accessToken + refreshToken cookies cleared on response
+// All refresh tokens for the user revoked in DB
+```
+
+---
+
+### `POST /auth/test-token` — Dev/test bypass (non-production only)
+
+> **Disabled in production** (`NODE_ENV=production` → 404). Used by E2E tests and local scripts to obtain a valid session cookie without the GitHub OAuth browser flow.
 
 ```json
 // Request
-{ "username": "string", "password": "string" }
+{ "playerId": "uuid", "username": "string" }
 
 // Response 200
-{ "accessToken": "jwt", "expiresIn": 900 }
+{ "ok": true }
+// accessToken cookie set on response
 
-// Response 400 — validation error
-{ "error": "VALIDATION_ERROR", "detail": "password must be a string", "correlationId": "uuid" }
-
-// Response 401
-{ "error": "UNAUTHORIZED", "detail": "Invalid credentials.", "correlationId": "uuid" }
+// Response 400 — missing fields
+{ "error": "VALIDATION_ERROR", "detail": "playerId and username are required.", "correlationId": "uuid" }
 ```
-
-### `POST /auth/refresh` — Refresh access token
-
-> **Phase 0 stub:** returns `501 Not Implemented`. Full implementation arrives in Phase 1 (Identity Service).
 
 ```json
 // Request

@@ -184,6 +184,7 @@ This project exists to solve these problems in a realistic context, not as a toy
 - DLQ Admin UI (inspect + replay)
 - Full observability stack (Prometheus, Grafana, Jaeger, Loki)
 - Kubernetes deployment with HPA
+- **GitHub OAuth authentication** — stable server-assigned `playerId`, httpOnly JWT cookies, identity-service with refresh-token rotation ([ADR-002](adr/002-github-oauth-identity.md))
 
 ### Deferred (Post v1.0)
 
@@ -193,7 +194,7 @@ This project exists to solve these problems in a realistic context, not as a toy
 - Tournament / bracket mode
 - Item rarity / drop rate system
 - Chat system
-- OAuth / social login
+- Additional OAuth providers (Google, Discord)
 
 ---
 

@@ -8,6 +8,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './filters/global-exception.filter.js';
 import { getLogger } from '@idempo/observability';
+import cookieParser from 'cookie-parser';
 import http from 'node:http';
 
 const logger = getLogger('main');
@@ -21,7 +22,8 @@ async function bootstrap(): Promise<void> {
   });
 
   app.setGlobalPrefix('api');
-  app.enableCors({ origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:3000' });
+  app.use(cookieParser());
+  app.enableCors({ origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:3000', credentials: true });
 
   // Input validation — rejects unknown fields and returns structured 400 errors
   app.useGlobalPipes(

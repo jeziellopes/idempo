@@ -103,4 +103,46 @@ describe('ProxyController', () => {
 
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ correlationId: 'unknown' }));
   });
+
+  // ── Identity header injection ───────────────────────────────────────────────
+
+  it('injects X-Player-Id and X-Username from JWT user onto the request before proxying', () => {
+    const { req, res } = makeStubs();
+    (req as Request & { user: unknown }).user = {
+      sub: 'a1b2c3d4-0000-0000-0000-000000000001',
+      username: 'alice',
+    };
+
+    controller.proxyGame(req, res);
+
+    expect(req.headers['x-player-id']).toBe('a1b2c3d4-0000-0000-0000-000000000001');
+    expect(req.headers['x-username']).toBe('alice');
+  });
+
+  it('strips any client-supplied X-Player-Id / X-Username before injecting from JWT', () => {
+    const { req, res } = makeStubs();
+    req.headers['x-player-id'] = 'attacker-id';
+    req.headers['x-username'] = 'attacker';
+    (req as Request & { user: unknown }).user = {
+      sub: 'real-player-uuid',
+      username: 'real-user',
+    };
+
+    controller.proxyGame(req, res);
+
+    // Injected values come from JWT, not from the original request headers
+    expect(req.headers['x-player-id']).toBe('real-player-uuid');
+    expect(req.headers['x-username']).toBe('real-user');
+  });
+
+  it('still forwards when req.user is absent (guard not yet validated — should not occur in normal flow)', () => {
+    const { req, res } = makeStubs();
+    req.headers['x-player-id'] = 'spoofed';
+
+    controller.proxyGame(req, res);
+
+    // Spoofed header deleted; no injection since no user
+    expect(req.headers['x-player-id']).toBeUndefined();
+    expect(mockProxyHandler).toHaveBeenCalledOnce();
+  });
 });

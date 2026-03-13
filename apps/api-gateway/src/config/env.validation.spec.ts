@@ -28,7 +28,7 @@ describe('envValidationSchema', () => {
 
     expect(value.PORT).toBe(3001);
     expect(value.NODE_ENV).toBe('development');
-    expect(value.DEMO_PASSWORD).toBe('idempo');
+    expect(value.IDENTITY_SERVICE_URL).toBe('http://localhost:3010');
   });
 
   it('rejects an invalid NODE_ENV value', () => {

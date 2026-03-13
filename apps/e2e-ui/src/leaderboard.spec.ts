@@ -41,16 +41,14 @@ test.describe('Leaderboard UI', () => {
   });
 
   test('should load leaderboard after arena visit', async ({ page }) => {
-    // Setup: Authenticate and inject token
+    // Setup: Authenticate and inject cookie
     await setupAuthenticatedPage(page, context);
 
-    // Navigate to arena first
+    // Navigate to arena first via lobby — username comes from the JWT cookie
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const usernameInput = page.locator('input[placeholder*="username"]');
-    await usernameInput.fill(`LeaderboardTest-${Date.now()}`);
-
+    await page.locator('button:has-text("Find Match")').waitFor({ state: 'visible', timeout: 10000 });
     const findMatchButton = page.locator('button:has-text("Find Match")');
     await findMatchButton.click();
 

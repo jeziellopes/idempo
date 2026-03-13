@@ -1,16 +1,26 @@
 'use client';
+import { useEffect } from 'react';
 import { useMatchStore } from '../../store/match.store';
 import { useMatchSocket } from '../../hooks/useMatchSocket';
 import { PlayerGrid } from './PlayerGrid';
 import { ActionPanel } from './ActionPanel';
+import { api } from '../../lib/api';
 
 interface Props {
   matchId: string;
 }
 
 export function Arena({ matchId }: Props) {
-  const { playerId, status, players, lastWinnerId, stampBalance } = useMatchStore();
+  const { playerId, status, players, lastWinnerId, stampBalance, hydrate } = useMatchStore();
   useMatchSocket(matchId);
+
+  // When the user navigates directly to an arena URL (e.g. via a shared link),
+  // the store may not yet have the player identity. Fetch it from the JWT cookie.
+  useEffect(() => {
+    if (!playerId) {
+      api.getMe().then((me) => hydrate(me.playerId, me.username)).catch(() => undefined);
+    }
+  }, [playerId, hydrate]);
 
   return (
     <div className="space-y-6">
@@ -51,7 +61,6 @@ export function Arena({ matchId }: Props) {
           {playerId && (
             <ActionPanel
               matchId={matchId}
-              playerId={playerId}
               disabled={status !== 'ACTIVE'}
             />
           )}

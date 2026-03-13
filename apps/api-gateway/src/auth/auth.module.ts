@@ -3,8 +3,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy.js';
-import { AuthController } from './auth.controller.js';
 
+/**
+ * Auth module — owns JWT validation (JwtStrategy + JwtAuthGuard).
+ * The /auth/** routes are now proxied to the identity-service via
+ * AuthProxyController in ProxyModule; this module no longer exposes
+ * any auth REST endpoints directly.
+ */
 @Module({
   imports: [
     ConfigModule,
@@ -19,7 +24,6 @@ import { AuthController } from './auth.controller.js';
     }),
   ],
   providers: [JwtStrategy],
-  controllers: [AuthController],
   exports: [JwtModule, PassportModule],
 })
 export class AuthModule {}
