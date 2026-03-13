@@ -440,8 +440,9 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-idempo-local-refresh-secret-change-in-prod}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:3010/api/auth/github/callback}
       IDENTITY_DB_URL: postgres://idempo:idempo@identity-db:5432/identity_db
-      WEB_REDIRECT_URL: ${WEB_REDIRECT_URL:-}
+      WEB_REDIRECT_URL: ${WEB_REDIRECT_URL:-http://localhost:3000}
       OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       identity-db:

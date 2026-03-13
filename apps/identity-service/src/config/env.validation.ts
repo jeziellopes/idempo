@@ -30,6 +30,13 @@ export const envValidationSchema = Joi.object({
   // PostgreSQL connection string for identity_db
   IDENTITY_DB_URL: Joi.string().uri({ scheme: 'postgres' }).required(),
 
+  // The full public URL GitHub posts the OAuth code back to.
+  // Must match the callback URL registered in your GitHub OAuth App.
+  // Example: https://fit-steady-akita.ngrok-free.app/api/auth/github/callback
+  GITHUB_CALLBACK_URL: Joi.string()
+    .uri()
+    .default('http://localhost:3010/api/auth/github/callback'),
+
   // After OAuth callback success, the user is redirected here
   WEB_REDIRECT_URL: Joi.string().uri().default('http://localhost:3000'),
 
