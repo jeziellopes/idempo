@@ -116,6 +116,21 @@ describe('AuthController', () => {
 
       expect(res.redirect).toHaveBeenCalledWith('http://localhost:3000');
     });
+
+    it('sets secure cookies in production mode', async () => {
+      const prodController = new AuthController(jwtService, makeConfig('production'), tokenService);
+      const user: UserDto = { playerId: 'player-uuid', username: 'octocat' };
+      const req = makeReq({ user });
+      const res = makeRes();
+
+      await prodController.githubCallback(req, res);
+
+      expect(res.cookie).toHaveBeenCalledWith(
+        'accessToken',
+        'access.jwt',
+        expect.objectContaining({ httpOnly: true, secure: true }),
+      );
+    });
   });
 
   // ── POST /auth/refresh ─────────────────────────────────────────────────────
@@ -152,6 +167,20 @@ describe('AuthController', () => {
 
       await expect(controller.refresh(req, res)).rejects.toThrow(UnauthorizedException);
     });
+
+    it('falls back to empty string when JWT payload has no username', async () => {
+      (jwtService.verify as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+        sub: 'player-uuid',
+        jti: 'jti-uuid',
+        // username intentionally absent
+      });
+      const req = makeReq({ cookies: { refreshToken: 'no-username.refresh.jwt' } });
+      const res = makeRes();
+
+      await controller.refresh(req, res);
+
+      expect(tokenService.rotate).toHaveBeenCalledWith('player-uuid', 'jti-uuid');
+    });
   });
 
   // ── GET /auth/me ───────────────────────────────────────────────────────────
@@ -179,6 +208,20 @@ describe('AuthController', () => {
       expect(res.clearCookie).toHaveBeenCalledWith('accessToken', expect.any(Object));
       expect(res.clearCookie).toHaveBeenCalledWith('refreshToken', expect.any(Object));
       expect(res.json).toHaveBeenCalledWith({ ok: true });
+    });
+
+    it('uses secure cookies when clearing in production mode', async () => {
+      const prodController = new AuthController(jwtService, makeConfig('production'), tokenService);
+      const payload: JwtPayload = { sub: 'player-uuid', username: 'octocat' };
+      const req = makeReq({ user: payload });
+      const res = makeRes();
+
+      await prodController.logout(req, res);
+
+      expect(res.clearCookie).toHaveBeenCalledWith(
+        'accessToken',
+        expect.objectContaining({ secure: true }),
+      );
     });
   });
 

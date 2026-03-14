@@ -147,8 +147,9 @@ export class AuthController {
       { sub: playerId, username },
       { expiresIn: ACCESS_TOKEN_TTL_S },
     );
-    const cookieOpts = { ...COOKIE_OPTS, ...(this.isProd && { secure: true }) };
-    res.cookie('accessToken', accessToken, { ...cookieOpts, maxAge: ACCESS_COOKIE_MAX_AGE });
+    // This endpoint is dev/test only — the production guard above prevents
+    // reaching here when isProd is true, so secure flag is never needed.
+    res.cookie('accessToken', accessToken, { ...COOKIE_OPTS, maxAge: ACCESS_COOKIE_MAX_AGE });
     res.json({ ok: true });
   }
 
