@@ -11,7 +11,9 @@ vi.mock('@nestjs/passport', () => ({
   ),
 }));
 
-const mockFromExtractors = vi.fn().mockReturnValue(vi.fn());
+// vi.mock factories are hoisted before variable declarations, so use
+// vi.hoisted() to define mocks that need to be referenced in the factory.
+const mockFromExtractors = vi.hoisted(() => vi.fn().mockReturnValue(vi.fn()));
 vi.mock('passport-jwt', () => ({
   ExtractJwt: { fromExtractors: mockFromExtractors },
   Strategy: class {},
