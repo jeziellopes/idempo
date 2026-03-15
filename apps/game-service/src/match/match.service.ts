@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { MatchRepository } from './match.repository.js';
@@ -21,6 +23,7 @@ import {
 import { KafkaProducerService } from '../kafka/kafka-producer.service.js';
 import { getLogger } from '@idempo/observability';
 import { TOPICS } from '@idempo/contracts';
+import { BotService } from '../bot/bot.service.js';
 
 const logger = getLogger('game-service:match');
 
@@ -57,6 +60,8 @@ export class MatchService {
     private readonly repo: MatchRepository,
     private readonly gateway: MatchGateway,
     private readonly kafka: KafkaProducerService,
+    @Inject(forwardRef(() => BotService))
+    private readonly botService: BotService,
   ) {}
 
   async createOrJoinMatch(playerId: string, username: string): Promise<{ matchId: string; status: string; wsToken: string }> {
@@ -100,6 +105,10 @@ export class MatchService {
     return this._toDto(match, players);
   }
 
+  async getOpenMatches(): Promise<Array<{ id: string; status: string; playerCount: number; hasBots: boolean }>> {
+    return this.repo.findOpenMatches();
+  }
+
   /**
    * Submit a player action.
    *
@@ -134,10 +143,11 @@ export class MatchService {
     }
 
     // Emit to Kafka for Combat Service to process
+    const kafkaEventId = uuidv4();
     await this.kafka.send(TOPICS.PLAYER_ACTIONS, {
       key: matchId,
       value: {
-        eventId: uuidv4(),
+        eventId: kafkaEventId,
         correlationId: dto.actionId,
         causationId: dto.actionId,
         version: 1,
@@ -150,6 +160,13 @@ export class MatchService {
         useStamp: dto.useStamp ?? false,
         timestamp: new Date().toISOString(),
       },
+    });
+
+    // Notify connected clients so the HUD shows the event in real time
+    this.gateway.broadcastMatchState(matchId, { event: 'action:accepted' }, {
+      type: 'PlayerActionEvent',
+      correlationId: dto.actionId,
+      eventId: kafkaEventId,
     });
 
     if (dto.useStamp) {
@@ -219,6 +236,9 @@ export class MatchService {
         return;
       }
 
+      // Bots act each tick — their actions traverse the full Kafka pipeline
+      await this.botService.tickBots(matchId, players);
+
       this.gateway.broadcastMatchState(matchId, { event: 'tick', players });
     }, TICK_INTERVAL_MS);
 
@@ -227,10 +247,15 @@ export class MatchService {
 
   private async _onLobbyTimeout(matchId: string): Promise<void> {
     const count = await this.repo.countActivePlayers(matchId);
-    if (count < MIN_PLAYERS) {
-      logger.info({ matchId }, 'Lobby timed out with insufficient players — cancelling');
+    if (count === 0) {
+      logger.info({ matchId }, 'Lobby timed out with no players — cancelling');
       this.gateway.broadcastMatchState(matchId, { event: 'match:cancelled' });
       return;
+    }
+    if (count < MIN_PLAYERS) {
+      // Fill remaining slots with tactical bots so solo players can play
+      logger.info({ matchId, humanCount: count }, 'Filling lobby with bots');
+      await this.botService.fillWithBots(matchId, count, MIN_PLAYERS);
     }
     await this._startMatch(matchId);
   }
