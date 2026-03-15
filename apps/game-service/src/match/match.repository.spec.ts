@@ -239,4 +239,29 @@ describe('MatchRepository', () => {
       expect(sql).toContain('final_score = score');
     });
   });
+
+  // ── findOpenMatches ──────────────────────────────────────────────────────────
+
+  describe('findOpenMatches()', () => {
+    it('returns mapped open matches with playerCount cast to number', async () => {
+      mockQuery.mockResolvedValue({
+        rows: [{ id: 'match-1', status: 'ACTIVE', playerCount: '3', hasBots: true }],
+      });
+
+      const result = await repo.findOpenMatches();
+
+      expect(result).toEqual([{ id: 'match-1', status: 'ACTIVE', playerCount: 3, hasBots: true }]);
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain('PENDING');
+      expect(sql).toContain('ACTIVE');
+    });
+
+    it('returns empty array when no open matches exist', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      const result = await repo.findOpenMatches();
+
+      expect(result).toEqual([]);
+    });
+  });
 });

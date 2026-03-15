@@ -63,6 +63,24 @@ describe('MatchGateway', () => {
     });
   });
 
+  // ── spectator handlers ───────────────────────────────────────────────────────
+
+  describe('handleSpectatorJoin()', () => {
+    it('adds the client to the match room', () => {
+      gateway.handleSpectatorJoin({ matchId: 'match-1' }, mockClient as Socket);
+
+      expect(mockClient.join).toHaveBeenCalledWith('match-1');
+    });
+  });
+
+  describe('handleSpectatorLeave()', () => {
+    it('removes the client from the match room', () => {
+      gateway.handleSpectatorLeave({ matchId: 'match-1' }, mockClient as Socket);
+
+      expect(mockClient.leave).toHaveBeenCalledWith('match-1');
+    });
+  });
+
   // ── lifecycle ────────────────────────────────────────────────────────────────
 
   describe('handleConnection() / handleDisconnect()', () => {

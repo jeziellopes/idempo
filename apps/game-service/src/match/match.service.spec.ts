@@ -13,6 +13,7 @@ import { TOPICS } from '@idempo/contracts';
 import type { MatchRepository } from './match.repository.js';
 import type { MatchGateway } from './match.gateway.js';
 import type { KafkaProducerService } from '../kafka/kafka-producer.service.js';
+import type { BotService } from '../bot/bot.service.js';
 import type { SubmitActionDto } from './match.service.js';
 
 type MockRepo = {
@@ -31,11 +32,16 @@ type MockRepo = {
     | 'applyDamage'
     | 'addScore'
     | 'finaliseScores'
+    | 'findOpenMatches'
   >]: ReturnType<typeof vi.fn>;
 };
 
 type MockGateway = {
   [K in keyof Pick<MatchGateway, 'broadcastMatchState'>]: ReturnType<typeof vi.fn>;
+};
+
+type MockBot = {
+  [K in keyof Pick<BotService, 'fillWithBots' | 'tickBots'>]: ReturnType<typeof vi.fn>;
 };
 
 type MockKafka = {
@@ -78,6 +84,7 @@ describe('MatchService', () => {
   let mockRepo: MockRepo;
   let mockGateway: MockGateway;
   let mockKafka: MockKafka;
+  let mockBot: MockBot;
   let service: MatchService;
   let internalService: MatchServiceInternals;
 
@@ -98,15 +105,21 @@ describe('MatchService', () => {
       applyDamage: vi.fn().mockResolvedValue(makePlayer()),
       addScore: vi.fn().mockResolvedValue(undefined),
       finaliseScores: vi.fn().mockResolvedValue(undefined),
+      findOpenMatches: vi.fn().mockResolvedValue([]),
     };
 
     mockGateway = { broadcastMatchState: vi.fn() };
     mockKafka = { send: vi.fn().mockResolvedValue(undefined) };
+    mockBot = {
+      fillWithBots: vi.fn().mockResolvedValue(undefined),
+      tickBots: vi.fn().mockResolvedValue(undefined),
+    };
 
     service = new MatchService(
       mockRepo as unknown as MatchRepository,
       mockGateway as unknown as MatchGateway,
       mockKafka as unknown as KafkaProducerService,
+      mockBot as unknown as BotService,
     );
     internalService = service as unknown as MatchServiceInternals;
   });
@@ -296,8 +309,8 @@ describe('MatchService', () => {
   // ── _onLobbyTimeout ──────────────────────────────────────────────────────────
 
   describe('_onLobbyTimeout()', () => {
-    it('broadcasts match:cancelled and does not start when count < MIN_PLAYERS', async () => {
-      mockRepo.countActivePlayers.mockResolvedValue(MIN_PLAYERS - 1);
+    it('broadcasts match:cancelled and does not start when count === 0', async () => {
+      mockRepo.countActivePlayers.mockResolvedValue(0);
 
       await internalService._onLobbyTimeout('match-1');
 
@@ -305,12 +318,23 @@ describe('MatchService', () => {
       expect(mockRepo.startMatch).not.toHaveBeenCalled();
     });
 
-    it('starts the match when count >= MIN_PLAYERS', async () => {
+    it('fills with bots and starts when 0 < count < MIN_PLAYERS', async () => {
+      mockRepo.countActivePlayers.mockResolvedValue(1); // solo player
+      mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
+
+      await internalService._onLobbyTimeout('match-1');
+
+      expect(mockBot.fillWithBots).toHaveBeenCalledWith('match-1', 1, MIN_PLAYERS);
+      expect(mockRepo.startMatch).toHaveBeenCalledWith('match-1');
+    });
+
+    it('starts the match without bots when count >= MIN_PLAYERS', async () => {
       mockRepo.countActivePlayers.mockResolvedValue(MIN_PLAYERS);
       mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
 
       await internalService._onLobbyTimeout('match-1');
 
+      expect(mockBot.fillWithBots).not.toHaveBeenCalled();
       expect(mockRepo.startMatch).toHaveBeenCalledWith('match-1');
     });
   });
@@ -445,6 +469,20 @@ describe('MatchService', () => {
       expect(mockRepo.finaliseScores).toHaveBeenCalledWith('match-1');
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.winnerId).toBe('');
+    });
+  });
+
+  // ── getOpenMatches ─────────────────────────────────────────────────────────
+
+  describe('getOpenMatches()', () => {
+    it('delegates to repo.findOpenMatches()', async () => {
+      const open = [{ id: 'm1', status: 'ACTIVE', playerCount: 2, hasBots: false }];
+      mockRepo.findOpenMatches.mockResolvedValue(open);
+
+      const result = await service.getOpenMatches();
+
+      expect(result).toEqual(open);
+      expect(mockRepo.findOpenMatches).toHaveBeenCalledOnce();
     });
   });
 
