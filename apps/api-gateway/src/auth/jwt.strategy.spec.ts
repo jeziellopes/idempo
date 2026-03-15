@@ -53,4 +53,37 @@ describe('JwtStrategy', () => {
     // Verify the strategy wires up cookie-first extraction
     expect(ExtractJwt.fromExtractors).toHaveBeenCalled();
   });
+
+  describe('extractFromCookieThenBearer', () => {
+    let extractFn: (req: unknown) => string | null;
+
+    beforeAll(async () => {
+      const { ExtractJwt } = await import('passport-jwt');
+      // Capture the extractor function passed to fromExtractors during construction
+      const [extractors] = (ExtractJwt.fromExtractors as ReturnType<typeof vi.fn>).mock.calls[0] as [
+        Array<(req: unknown) => string | null>,
+      ];
+      extractFn = extractors[0];
+    });
+
+    it('returns the accessToken cookie when present', () => {
+      const req = { cookies: { accessToken: 'cookie-token' }, headers: {} };
+      expect(extractFn(req)).toBe('cookie-token');
+    });
+
+    it('falls back to Bearer token when cookie is absent', () => {
+      const req = { cookies: {}, headers: { authorization: 'Bearer bearer-token' } };
+      expect(extractFn(req)).toBe('bearer-token');
+    });
+
+    it('returns null when neither cookie nor Authorization header is present', () => {
+      const req = { cookies: {}, headers: {} };
+      expect(extractFn(req)).toBeNull();
+    });
+
+    it('returns null when Authorization header exists but is not Bearer', () => {
+      const req = { cookies: {}, headers: { authorization: 'Basic dXNlcjpwYXNz' } };
+      expect(extractFn(req)).toBeNull();
+    });
+  });
 });
