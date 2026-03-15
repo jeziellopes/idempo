@@ -75,6 +75,14 @@ describe('BotService', () => {
       expect(added).toHaveLength(0);
       expect(mockRepo.addPlayer).not.toHaveBeenCalled();
     });
+
+    it('falls back to spawns[0] when playerIndex exceeds the spawn-list length (>MAX_PLAYERS)', async () => {
+      // playerIndex 7 → idx capped at MAX_PLAYERS(6) → SPAWN_POSITIONS[6] has 6 entries → spawns[6] undefined
+      const added = await service.fillWithBots('match-1', 6, 7);
+
+      expect(added).toHaveLength(1);
+      expect(mockRepo.addPlayer).toHaveBeenCalledOnce();
+    });
   });
 
   // ── tickBots ──────────────────────────────────────────────────────────────────

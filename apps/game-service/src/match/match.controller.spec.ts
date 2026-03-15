@@ -5,7 +5,7 @@ import type { MatchService } from './match.service.js';
 
 type MockMatchService = Pick<
   MatchService,
-  'createOrJoinMatch' | 'joinMatch' | 'getMatchState' | 'submitAction'
+  'createOrJoinMatch' | 'joinMatch' | 'getMatchState' | 'getOpenMatches' | 'submitAction'
 >;
 
 /** Helper: build the header args the gateway injects after JWT validation. */
@@ -20,6 +20,7 @@ describe('MatchController', () => {
       createOrJoinMatch: vi.fn().mockResolvedValue({ matchId: 'match-1', status: 'PENDING', wsToken: 'tok' }),
       joinMatch: vi.fn().mockResolvedValue({ matchId: 'match-1', status: 'ACTIVE', players: [] }),
       getMatchState: vi.fn().mockResolvedValue({ matchId: 'match-1', status: 'ACTIVE', players: [] }),
+      getOpenMatches: vi.fn().mockResolvedValue([]),
       submitAction: vi.fn().mockResolvedValue({ accepted: true, duplicate: false }),
     };
     controller = new MatchController(mockService as MatchService);
@@ -56,6 +57,16 @@ describe('MatchController', () => {
 
     it('throws UnauthorizedException when identity headers are missing', () => {
       expect(() => controller.joinMatch('match-1', undefined, undefined)).toThrow(UnauthorizedException);
+    });
+  });
+
+  // ── getOpenMatches ───────────────────────────────────────────────────────────
+
+  describe('getOpenMatches()', () => {
+    it('delegates to matchService.getOpenMatches', async () => {
+      await controller.getOpenMatches();
+
+      expect(mockService.getOpenMatches).toHaveBeenCalledOnce();
     });
   });
 

@@ -41,6 +41,22 @@ describe('MatchGateway', () => {
       expect(mockTo).toHaveBeenCalledWith('room-abc');
       expect(mockTo).not.toHaveBeenCalledWith('match-1');
     });
+
+    it('merges lastEvent into the payload when provided', () => {
+      const payload = { players: [] };
+      const lastEvent = { type: 'attack', correlationId: 'corr-1', eventId: 'evt-1' };
+
+      gateway.broadcastMatchState('match-1', payload, lastEvent);
+
+      expect(mockEmit).toHaveBeenCalledWith('match:state', { ...payload, lastEvent });
+    });
+
+    it('is a no-op when server is not yet initialised', () => {
+      (gateway as unknown as { server: undefined }).server = undefined;
+
+      expect(() => gateway.broadcastMatchState('match-1', {})).not.toThrow();
+      expect(mockTo).not.toHaveBeenCalled();
+    });
   });
 
   // ── handleJoinRoom ────────────────────────────────────────────────────────────

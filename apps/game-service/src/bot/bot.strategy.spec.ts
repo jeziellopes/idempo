@@ -131,6 +131,30 @@ describe('decideBotAction()', () => {
       expect((result.payload as { direction: string }).direction).toBe('east');
     });
 
+    it('picks the closer of two enemies when falling back to nearest-enemy move', () => {
+      // Bot at (0,0); far enemy at (8,0); near enemy at (3,0) — reducer must pick near enemy
+      const bot = makePlayer({ positionX: 0, positionY: 0 });
+      const farEnemy = makePlayer({ playerId: 'far', positionX: 8, positionY: 0, isBot: false });
+      const nearEnemy = makePlayer({ playerId: 'near', positionX: 3, positionY: 0, isBot: false });
+
+      const result = decideBotAction(bot, [bot, farEnemy, nearEnemy], emptyMap);
+      // Bot should move east toward (3,0), not (8,0)
+      expect(result.actionType).toBe('move');
+      expect((result.payload as { direction: string }).direction).toBe('east');
+    });
+
+    it('keeps the first enemy when it is already closer than the second (reducer ? a branch)', () => {
+      // Bot at (0,0); near enemy at (3,0) listed first; far enemy at (8,0) listed second
+      // reduce: a=near(3), b=far(8) → 3 <= 8 → returns a
+      const bot = makePlayer({ positionX: 0, positionY: 0 });
+      const nearEnemy = makePlayer({ playerId: 'near', positionX: 3, positionY: 0, isBot: false });
+      const farEnemy = makePlayer({ playerId: 'far', positionX: 8, positionY: 0, isBot: false });
+
+      const result = decideBotAction(bot, [bot, nearEnemy, farEnemy], emptyMap);
+      expect(result.actionType).toBe('move');
+      expect((result.payload as { direction: string }).direction).toBe('east');
+    });
+
     it('returns defend as safe no-op when bot is completely surrounded and cannot move', () => {
       // Build a map where bot is boxed in by walls (position 1,1, surrounded by walls on all 4 sides)
       const boxedMap: TileType[][] = emptyMap.map((row, ri) =>
@@ -187,6 +211,37 @@ describe('decideBotAction()', () => {
       const result = decideBotAction(bot, [bot, dead1, dead2], emptyMap);
       // No live enemies → move toward resource (or defend if boxed)
       expect(['move', 'defend']).toContain(result.actionType);
+    });
+
+    it('moves west when target is to the left (covers dx<0 "west" branch)', () => {
+      // Bot at (9,5) on emptyMap; enemy at (3,5) → dx=-1 → west candidates
+      const bot = makePlayer({ positionX: 9, positionY: 5 });
+      const enemy = makePlayer({ playerId: 'enemy-1', positionX: 3, positionY: 5, isBot: false });
+
+      const result = decideBotAction(bot, [bot, enemy], emptyMap);
+      expect(result.actionType).toBe('move');
+      expect((result.payload as { direction: string }).direction).toBe('west');
+    });
+
+    it('moves north when target is above (covers dy<0 "north" branch)', () => {
+      // Bot at (5,9) on emptyMap; enemy at (5,3) → dy=-1 → north candidate
+      const bot = makePlayer({ positionX: 5, positionY: 9 });
+      const enemy = makePlayer({ playerId: 'enemy-1', positionX: 5, positionY: 3, isBot: false });
+
+      const result = decideBotAction(bot, [bot, enemy], emptyMap);
+      expect(result.actionType).toBe('move');
+      expect((result.payload as { direction: string }).direction).toBe('north');
+    });
+
+    it('attacks the enemy with lower HP when two adjacent enemies are present (covers reduce b branch)', () => {
+      // Enemy A (hp=80) adjacent, Enemy B (hp=20) adjacent — reduce should pick B
+      const bot = makePlayer({ positionX: 5, positionY: 5, hp: 100 });
+      const enemyA = makePlayer({ playerId: 'a', positionX: 5, positionY: 6, hp: 80, isBot: false });
+      const enemyB = makePlayer({ playerId: 'b', positionX: 6, positionY: 5, hp: 20, isBot: false });
+
+      const result = decideBotAction(bot, [bot, enemyA, enemyB], emptyMap);
+      expect(result.actionType).toBe('attack');
+      expect((result.payload as { targetId: string }).targetId).toBe('b');
     });
   });
 });

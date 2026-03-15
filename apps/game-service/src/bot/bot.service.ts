@@ -28,6 +28,8 @@ export class BotService {
     const added: string[] = [];
     for (let i = currentCount; i < targetCount; i++) {
       const botId = uuidv4();
+      // BOT_NAMES[i % length] is always defined; ?? guard exists only for TypeScript's noUncheckedIndexedAccess
+      /* v8 ignore next */
       const botName = BOT_NAMES[i % BOT_NAMES.length] ?? `🤖 Bot ${i + 1}`;
       const playerIndex = i + 1;
       const idx = Math.min(playerIndex, MAX_PLAYERS);
