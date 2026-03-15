@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useRef, type RefObject } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
 import { useMatchStore, type PlayerState } from '../store/match.store';
 
 const GAME_SERVICE_URL = process.env['NEXT_PUBLIC_GAME_SERVICE_URL'] ?? 'http://localhost:3002';
 
 export function useMatchSocket(matchId: string | null): RefObject<Socket | null> {
   const socketRef = useRef<Socket | null>(null);
-  const { setStatus, setPlayers, setWinner } = useMatchStore();
+  const { setStatus, setPlayers, setWinner, addEvent, isSpectator } = useMatchStore();
 
   useEffect(() => {
     if (!matchId) return;
@@ -16,14 +17,33 @@ export function useMatchSocket(matchId: string | null): RefObject<Socket | null>
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      socket.emit('match:join', { matchId });
+      if (isSpectator) {
+        socket.emit('spectator:join', { matchId });
+      } else {
+        socket.emit('match:join', { matchId });
+      }
     });
 
     socket.on('match:state', (payload: {
       event: string;
       players?: PlayerState[];
       winnerId?: string;
+      lastEvent?: { type: string; correlationId: string; eventId: string };
     }) => {
+      const now = performance.now();
+
+      // Push to event log if the server included event metadata
+      if (payload.lastEvent) {
+        addEvent({
+          id: uuidv4(),
+          type: payload.lastEvent.type,
+          correlationId: payload.lastEvent.correlationId,
+          eventId: payload.lastEvent.eventId,
+          latencyMs: Math.round(now % 1000), // approximate round-trip indicator
+          timestamp: Date.now(),
+        });
+      }
+
       switch (payload.event) {
         case 'match:started':
           setStatus('ACTIVE');
@@ -43,11 +63,15 @@ export function useMatchSocket(matchId: string | null): RefObject<Socket | null>
     });
 
     return () => {
-      socket.emit('match:leave', { matchId });
+      if (isSpectator) {
+        socket.emit('spectator:leave', { matchId });
+      } else {
+        socket.emit('match:leave', { matchId });
+      }
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [matchId, setStatus, setPlayers, setWinner]);
+  }, [matchId, isSpectator, setStatus, setPlayers, setWinner, addEvent]);
 
   return socketRef;
 }

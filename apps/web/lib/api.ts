@@ -98,4 +98,7 @@ export const api = {
     }),
 
   getLeaderboard: () => request<LeaderboardResponse>('/leaderboard'),
+
+  getOpenMatches: () =>
+    request<Array<{ id: string; status: string; playerCount: number; hasBots: boolean }>>('/matches/open'),
 };
