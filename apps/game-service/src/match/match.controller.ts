@@ -60,6 +60,11 @@ export class MatchController {
     return this.matchService.joinMatch(matchId, identity.playerId, identity.username);
   }
 
+  @Get('open')
+  getOpenMatches() {
+    return this.matchService.getOpenMatches();
+  }
+
   @Get(':matchId')
   getMatch(@Param('matchId') matchId: string) {
     return this.matchService.getMatchState(matchId);
