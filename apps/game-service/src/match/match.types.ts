@@ -25,6 +25,7 @@ export interface MatchPlayer {
   alive: boolean;
   team: number | null;
   finalScore: number;
+  isBot: boolean;
 }
 
 export interface PlayerAction {
@@ -48,5 +49,6 @@ export const SPAWN_POSITIONS: Record<number, Array<{ x: number; y: number }>> = 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
 export const LOBBY_TIMEOUT_MS = 30_000;
+export const BOT_FILL_DELAY_MS = 10_000;
 export const MATCH_DURATION_MS = 5 * 60 * 1_000;
 export const TICK_INTERVAL_MS = 100;

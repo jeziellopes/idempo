@@ -31,13 +31,13 @@ export class MatchRepository {
     return Number(rows[0]?.count ?? 0);
   }
 
-  async addPlayer(matchId: string, playerId: string, username: string, x: number, y: number): Promise<void> {
+  async addPlayer(matchId: string, playerId: string, username: string, x: number, y: number, isBot = false): Promise<void> {
     await this.pool.query(
       `INSERT INTO match_players
-         (match_id, player_id, username, hp, score, resources, shields, position_x, position_y, alive)
-       VALUES ($1, $2, $3, 100, 0, 0, 0, $4, $5, true)
+         (match_id, player_id, username, hp, score, resources, shields, position_x, position_y, alive, is_bot)
+       VALUES ($1, $2, $3, 100, 0, 0, 0, $4, $5, true, $6)
        ON CONFLICT (match_id, player_id) DO NOTHING`,
-      [matchId, playerId, username, x, y],
+      [matchId, playerId, username, x, y, isBot],
     );
   }
 
@@ -46,7 +46,7 @@ export class MatchRepository {
       `SELECT match_id AS "matchId", player_id AS "playerId", username,
               hp, score, resources, shields,
               position_x AS "positionX", position_y AS "positionY",
-              alive, team, final_score AS "finalScore"
+              alive, team, final_score AS "finalScore", is_bot AS "isBot"
        FROM match_players WHERE match_id = $1`,
       [matchId],
     );
@@ -142,5 +142,21 @@ export class MatchRepository {
       `UPDATE match_players SET final_score = score WHERE match_id = $1`,
       [matchId],
     );
+  }
+
+  async findOpenMatches(): Promise<Array<{ id: string; status: string; playerCount: number; hasBots: boolean }>> {
+    const { rows } = await this.pool.query<{ id: string; status: string; playerCount: string; hasBots: boolean }>(
+      `SELECT m.id,
+              m.status,
+              COUNT(mp.player_id)::text AS "playerCount",
+              BOOL_OR(mp.is_bot) AS "hasBots"
+       FROM matches m
+       LEFT JOIN match_players mp ON mp.match_id = m.id
+       WHERE m.status IN ('PENDING', 'ACTIVE')
+       GROUP BY m.id, m.status
+       ORDER BY m.created_at DESC
+       LIMIT 20`,
+    );
+    return rows.map((r) => ({ ...r, playerCount: Number(r.playerCount) }));
   }
 }
