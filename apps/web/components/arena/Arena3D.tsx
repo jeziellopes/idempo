@@ -311,15 +311,13 @@ interface Arena3DProps {
 
 export function Arena3D({ playerId }: Arena3DProps) {
   return (
-    <div style={{ width: '100%', height: 480, borderRadius: 8, overflow: 'hidden' }}>
-      <Canvas
-        shadows
-        gl={{ antialias: true }}
-        camera={{ fov: 55 }}
-        style={{ background: '#0f1319' }}
-      >
-        <Scene playerId={playerId} />
-      </Canvas>
-    </div>
+    <Canvas
+      shadows
+      gl={{ antialias: true }}
+      camera={{ fov: 55 }}
+      style={{ width: '100%', height: '100%', background: '#0f1319' }}
+    >
+      <Scene playerId={playerId} />
+    </Canvas>
   );
 }

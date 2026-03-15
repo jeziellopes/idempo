@@ -22,7 +22,7 @@ export function DistributedHUD() {
   const { recentEvents } = useMatchStore();
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+    <div className="overflow-hidden">
       <button
         type="button"
         className="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-gray-400 hover:text-gray-200 transition-colors"
