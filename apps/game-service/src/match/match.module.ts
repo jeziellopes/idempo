@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MatchController } from './match.controller.js';
 import { MatchService } from './match.service.js';
 import { MatchRepository } from './match.repository.js';

@@ -58,7 +58,7 @@ describe('BotService', () => {
     it('calls repo.addPlayer with isBot=true', async () => {
       await service.fillWithBots('match-1', 0, 1);
 
-      const [_matchId, _botId, _name, _x, _y, isBot] = mockRepo.addPlayer.mock.calls[0]!;
+      const [, , , , , isBot] = mockRepo.addPlayer.mock.calls[0]!;
       expect(isBot).toBe(true);
     });
 

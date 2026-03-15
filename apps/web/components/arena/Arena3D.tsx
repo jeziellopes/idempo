@@ -245,7 +245,7 @@ function CameraSetup() {
 
 function Scene({ playerId }: { playerId: string | null }) {
   const { players } = useMatchStore();
-  const [attackFxList, setAttackFxList] = useState<AttackFx[]>([]);
+  const [attackFxList] = useState<AttackFx[]>([]);
 
   // Track previous alive state for death effects
   const prevAlive = useRef<Record<string, boolean>>({});

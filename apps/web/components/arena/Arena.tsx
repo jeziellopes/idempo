@@ -31,7 +31,6 @@ export function Arena({ matchId, spectate = false }: Props) {
       // Only call setMatch if not already set — avoids resetting state on re-renders
       setMatch(matchId);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, spectate]);
 
   // When the user navigates directly to an arena URL (e.g. via a shared link),
