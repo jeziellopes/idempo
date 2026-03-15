@@ -26,6 +26,7 @@ export function useMatchSocket(matchId: string | null): RefObject<Socket | null>
 
     socket.on('match:state', (payload: {
       event: string;
+      status?: string;
       players?: PlayerState[];
       winnerId?: string;
       lastEvent?: { type: string; correlationId: string; eventId: string };
@@ -45,11 +46,18 @@ export function useMatchSocket(matchId: string | null): RefObject<Socket | null>
       }
 
       switch (payload.event) {
+        case 'match:synced':
+          // Server pushed current state when we joined the room — hydrate unconditionally.
+          if (payload.status) setStatus(payload.status as Parameters<typeof setStatus>[0]);
+          if (payload.players) setPlayers(payload.players);
+          break;
         case 'match:started':
           setStatus('ACTIVE');
           if (payload.players) setPlayers(payload.players);
           break;
         case 'tick':
+          // Ensure status reflects reality even if match:started was missed.
+          setStatus('ACTIVE');
           if (payload.players) setPlayers(payload.players);
           break;
         case 'match:finished':

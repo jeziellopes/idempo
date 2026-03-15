@@ -21,7 +21,7 @@ interface Props {
 }
 
 export function Arena({ matchId, spectate = false }: Props) {
-  const { playerId, status, players, lastWinnerId, stampBalance, hydrate, isSpectator, setSpectator, setMatch } = useMatchStore();
+  const { playerId, status, players, lastWinnerId, stampBalance, hydrate, isSpectator, setSpectator, setMatch, hydrateMatch } = useMatchStore();
   useMatchSocket(matchId);
 
   useEffect(() => {
@@ -31,6 +31,14 @@ export function Arena({ matchId, spectate = false }: Props) {
       setMatch(matchId);
     }
   }, [matchId, spectate]);
+
+  // HTTP fallback: fetch current match state on mount so the UI is populated
+  // even before the WebSocket emits (or if it missed an earlier broadcast).
+  useEffect(() => {
+    api.getMatch(matchId)
+      .then((state) => hydrateMatch(state.status, state.players as Parameters<typeof hydrateMatch>[1]))
+      .catch(() => undefined); // non-critical — WebSocket will catch up
+  }, [matchId]);
 
   useEffect(() => {
     if (!playerId) {

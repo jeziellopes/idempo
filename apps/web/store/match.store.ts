@@ -40,6 +40,9 @@ interface MatchStore {
   hydrate: (playerId: string, username: string) => void;
   setMatch: (matchId: string) => void;
   setSpectator: (matchId: string) => void;
+  /** Hydrate match state from an HTTP snapshot (e.g. GET /matches/:id on Arena mount).
+   *  Will not downgrade status if the WebSocket has already advanced it further. */
+  hydrateMatch: (status: string, players: PlayerState[]) => void;
   setStatus: (status: MatchStatus) => void;
   setPlayers: (players: PlayerState[]) => void;
   spendStamp: () => boolean;
@@ -66,6 +69,15 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
 
   setSpectator: (matchId) =>
     set({ matchId, status: 'PENDING', isSpectator: true }),
+
+  hydrateMatch: (status, players) => {
+    const current = get().status;
+    // Status rank: idle < PENDING < ACTIVE < FINISHED/CANCELLED
+    const rank: Record<string, number> = { idle: 0, PENDING: 1, ACTIVE: 2, FINISHED: 3, CANCELLED: 3 };
+    const incoming = status as MatchStatus;
+    const nextStatus = (rank[incoming] ?? 0) > (rank[current] ?? 0) ? incoming : current;
+    set({ status: nextStatus, players });
+  },
 
   setStatus: (status) => set({ status }),
 

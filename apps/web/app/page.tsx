@@ -111,7 +111,7 @@ export default function LobbyPage() {
           >
             {joining ? 'Joining…' : 'Find Match'}
           </button>
-          <p className="text-xs text-gray-600 text-center">Playing alone? A bot will fill after 10 s.</p>
+          <p className="text-xs text-gray-600 text-center">Playing alone? A bot will fill after 30 s.</p>
         </div>
       )}
 

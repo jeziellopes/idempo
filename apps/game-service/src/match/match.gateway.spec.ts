@@ -6,21 +6,42 @@ vi.mock('@idempo/observability', () => ({
 }));
 
 import { MatchGateway } from './match.gateway.js';
+import type { MatchRepository } from './match.repository.js';
+
+const mockMatch = { id: 'match-1', status: 'ACTIVE', startedAt: new Date() };
+const mockPlayers = [
+  { playerId: 'p1', username: 'Alice', hp: 100, score: 10, resources: 5, positionX: 1, positionY: 2, alive: true, isBot: false },
+];
+
+function makeRepo(overrides: Partial<MatchRepository> = {}): MatchRepository {
+  return {
+    findMatch: vi.fn().mockResolvedValue(mockMatch),
+    getPlayers: vi.fn().mockResolvedValue(mockPlayers),
+    ...overrides,
+  } as unknown as MatchRepository;
+}
 
 describe('MatchGateway', () => {
   let gateway: MatchGateway;
   let mockEmit: ReturnType<typeof vi.fn>;
   let mockTo: ReturnType<typeof vi.fn>;
-  let mockClient: Pick<Socket, 'id' | 'join' | 'leave'>;
+  let mockClient: Pick<Socket, 'id' | 'join' | 'leave' | 'emit'>;
+  let repo: MatchRepository;
 
   beforeEach(() => {
-    gateway = new MatchGateway();
+    repo = makeRepo();
+    gateway = new MatchGateway(repo);
 
     mockEmit = vi.fn();
     mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
     gateway.server = { to: mockTo } as unknown as Server;
 
-    mockClient = { id: 'socket-123', join: vi.fn().mockResolvedValue(undefined), leave: vi.fn().mockResolvedValue(undefined) };
+    mockClient = {
+      id: 'socket-123',
+      join: vi.fn().mockResolvedValue(undefined),
+      leave: vi.fn().mockResolvedValue(undefined),
+      emit: vi.fn(),
+    };
   });
 
   // ── broadcastMatchState ───────────────────────────────────────────────────────
@@ -62,10 +83,30 @@ describe('MatchGateway', () => {
   // ── handleJoinRoom ────────────────────────────────────────────────────────────
 
   describe('handleJoinRoom()', () => {
-    it('adds the client to the match room', () => {
-      gateway.handleJoinRoom({ matchId: 'match-1' }, mockClient as Socket);
+    it('adds the client to the match room', async () => {
+      await gateway.handleJoinRoom({ matchId: 'match-1' }, mockClient as Socket);
 
       expect(mockClient.join).toHaveBeenCalledWith('match-1');
+    });
+
+    it('emits match:synced with current state to the joining client', async () => {
+      await gateway.handleJoinRoom({ matchId: 'match-1' }, mockClient as Socket);
+
+      expect(mockClient.emit).toHaveBeenCalledWith('match:state', expect.objectContaining({
+        event: 'match:synced',
+        status: 'ACTIVE',
+        players: expect.arrayContaining([expect.objectContaining({ playerId: 'p1' })]),
+      }));
+    });
+
+    it('silently skips sync if match not found', async () => {
+      repo = makeRepo({ findMatch: vi.fn().mockResolvedValue(null) });
+      gateway = new MatchGateway(repo);
+      gateway.server = { to: mockTo } as unknown as Server;
+
+      await expect(gateway.handleJoinRoom({ matchId: 'unknown' }, mockClient as Socket))
+        .resolves.not.toThrow();
+      expect(mockClient.emit).not.toHaveBeenCalled();
     });
   });
 
@@ -82,10 +123,19 @@ describe('MatchGateway', () => {
   // ── spectator handlers ───────────────────────────────────────────────────────
 
   describe('handleSpectatorJoin()', () => {
-    it('adds the client to the match room', () => {
-      gateway.handleSpectatorJoin({ matchId: 'match-1' }, mockClient as Socket);
+    it('adds the client to the match room', async () => {
+      await gateway.handleSpectatorJoin({ matchId: 'match-1' }, mockClient as Socket);
 
       expect(mockClient.join).toHaveBeenCalledWith('match-1');
+    });
+
+    it('emits match:synced to the spectator client', async () => {
+      await gateway.handleSpectatorJoin({ matchId: 'match-1' }, mockClient as Socket);
+
+      expect(mockClient.emit).toHaveBeenCalledWith('match:state', expect.objectContaining({
+        event: 'match:synced',
+        status: 'ACTIVE',
+      }));
     });
   });
 
