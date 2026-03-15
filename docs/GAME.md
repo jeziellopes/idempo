@@ -18,19 +18,22 @@ This document is the authoritative reference for all arena game rules. It is con
 8. [Scoring](#8-scoring)
 9. [Match End Conditions](#9-match-end-conditions)
 10. [Rewards](#10-rewards)
+11. [NPC Bots](#11-npc-bots)
+12. [Spectator Mode](#12-spectator-mode)
 
 ---
 
 ## 1. Match Lifecycle
 
 ```
-PENDING   → 2–6 players joining (30 s lobby timeout)
+PENDING   → 1–6 players joining (30 s lobby timeout)
 ACTIVE    → Match running (3–5 min, server-authoritative tick)
 FINISHED  → Winner determined, rewards granted
 ```
 
-- A match starts automatically when 6 players join, or after the lobby timeout (30 s) if at least 2 players are present.
-- If fewer than 2 players join within 30 s, the match is cancelled and players are returned to matchmaking.
+- A match starts automatically when 6 players join, or after the lobby timeout (30 s).
+- **Solo play:** If only 1 human has joined at lobby timeout, NPC bots fill the remaining seats up to `MIN_PLAYERS` (2) and the match starts. See [§11 NPC Bots](#11-npc-bots).
+- If **no** humans join within 30 s, the match is cancelled.
 - Match duration is capped at **5 minutes**. If time expires, the highest-score player wins.
 
 ---
@@ -262,6 +265,56 @@ Rewards are calculated by the Reward Service after `MatchFinishedEvent` is recei
 | Common | 60% | `iron_sword` (+5 weapon bonus) |
 | Uncommon | 30% | `steel_sword` (+10 weapon bonus) |
 | Rare | 10% | `rare_sword_01` (+20 weapon bonus) |
+
+---
+
+---
+
+## 11. NPC Bots
+
+When the lobby timeout fires and at least one human has joined but the player count is below `MIN_PLAYERS`, the **Bot Service** fills the remaining slots with rule-based NPC bots.
+
+### 11.1 Bot Fill Logic
+
+- Triggered by `MatchService._onLobbyTimeout()` after `BOT_FILL_DELAY_MS` (10 000 ms).
+- Each bot is assigned a stable UUID, a display name (e.g. `⚡ Alpha`, `🔥 Beta`), and `is_bot = true` in `match_players`.
+- Bots are flagged with a 🤖 badge in the Arena UI and leaderboard.
+
+### 11.2 Bot Decision Priority (each tick)
+
+| Priority | Condition | Action |
+|---|---|---|
+| 1 — Collect | Bot is on a `resource_node` tile | `collect` |
+| 2 — Defend | `hp < 30` AND an enemy is adjacent (Chebyshev ≤ 1) | `defend` |
+| 3 — Attack | An enemy is adjacent | Attack lowest-HP adjacent enemy |
+| 4 — Move | Otherwise | BFS greedy step toward nearest `resource_node`; fallback toward nearest enemy |
+
+- Bot actions go through the full Kafka pipeline (`submitAction()` → `player-actions` topic → Combat Service) — no shortcuts.
+- Bots can spend no Stamps (they have no stamp balance).
+
+---
+
+## 12. Spectator Mode
+
+Any authenticated user may watch any PENDING or ACTIVE match without joining as a player.
+
+### 12.1 Joining as Spectator
+
+1. Fetch open matches: `GET /matches/open` — returns up to 20 PENDING or ACTIVE matches with `{ id, status, playerCount, hasBots }`.
+2. Navigate to `/arena/:matchId?spectate=true`.
+3. The client emits `spectator:join` over WebSocket (same Socket.IO room as players) — no record is written to `match_players`.
+
+### 12.2 Spectator UI
+
+- Shows a **👁 Watching** badge instead of action controls.
+- ActionPanel is hidden — spectators cannot submit actions.
+- All real-time state broadcasts (`match:state`) are received identically to players.
+- 3-D view and Distributed HUD (⚡ Event Stream) are fully available.
+
+### 12.3 Leaving
+
+- Navigating away emits `spectator:leave` — the server removes the socket from the room.
+- No match records are affected.
 
 ---
 

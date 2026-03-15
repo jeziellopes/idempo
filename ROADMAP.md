@@ -76,6 +76,33 @@ E2E scenario: obtain `accessToken` cookie via `POST /auth/test-token` bypass →
 
 ---
 
+## Iteration 1.5 — Solo Play & Visual Layer
+
+> **Delivers:** Playable alone (NPC bots fill the lobby), spectator mode for any match, and a 3-D arena view with a live distributed-systems event HUD.
+
+**Services changed:** Game Service (bot tick loop, `GET /matches/open`)  
+**Frontend changed:** Lobby page (watch list), Arena (3-D toggle, spectator badge, event HUD)  
+**New files:** `bot.strategy.ts`, `bot.service.ts`, `Arena3D.tsx`, `DistributedHUD.tsx`
+
+- [x] DB: `is_bot BOOLEAN` on `match_players`; `idx_matches_status` index; `findOpenMatches()` query
+- [x] Bot strategy — pure-function tactical AI (collect → defend → attack → move priority); 100% unit-testable
+- [x] Bot service — `fillWithBots()` + `tickBots()`; full Kafka pipeline preserved (no shortcut)
+- [x] Game service — lobby timeout fills bots when ≥1 human present; `GET /matches/open` endpoint
+- [x] Spectator WebSocket — `spectator:join` / `spectator:leave`; read-only UI (no ActionPanel)
+- [x] 3-D arena — React Three Fiber canvas; lerp movement; in-world HP bars; death Sparkles; OrbitControls top-down camera with polar clamp; `ssr: false` dynamic import
+- [x] Distributed HUD — collapsible `⚡ Event Stream` panel; last-20 Kafka events; round-trip latency; idempotency duplicate badges
+
+**Patterns live:** Rule-based NPC AI · Spectator WebSocket rooms · Three.js R3F in Next.js · Live DS event log  
+**Game state:** ✅ Solo play works · ✅ Any match watchable · ✅ 3-D view with DS HUD
+
+**Coverage gate:** 100% on `bot.strategy.ts`; ≥90% on `bot.service.ts`.
+
+**Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter1b.e2e.ts`
+
+E2E scenario: create match with single player → wait 10 s → assert bot fills slot → assert match transitions to ACTIVE → spectator joins via `GET /matches/open` + WS `spectator:join` → assert state broadcasts received in spectator client.
+
+---
+
 ## Iteration 2 — Rewards & Inventory
 
 > **Delivers:** Winners receive resources after each match. Players can view wallet and inventory.
