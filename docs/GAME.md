@@ -33,6 +33,7 @@ FINISHED  → Winner determined, rewards granted
 
 - A match starts automatically when 6 players join, or after the lobby timeout (30 s).
 - **Solo play:** If only 1 human has joined at lobby timeout, NPC bots fill the remaining seats up to `MIN_PLAYERS` (2) and the match starts. See [§11 NPC Bots](#11-npc-bots).
+- **Pre-game warmup (Iteration 1.6+):** `move` actions are allowed while the match is in `PENDING` state so players can position themselves before the countdown ends. Combat actions (`attack`, `defend`, `collect`) are still ACTIVE-only.
 - If **no** humans join within 30 s, the match is cancelled.
 - Match duration is capped at **5 minutes**. If time expires, the highest-score player wins.
 
@@ -276,7 +277,7 @@ When the lobby timeout fires and at least one human has joined but the player co
 
 ### 11.1 Bot Fill Logic
 
-- Triggered by `MatchService._onLobbyTimeout()` after `BOT_FILL_DELAY_MS` (10 000 ms).
+- Triggered by `MatchService._onLobbyTimeout()` after `LOBBY_TIMEOUT_MS` (30 000 ms).
 - Each bot is assigned a stable UUID, a display name (e.g. `⚡ Alpha`, `🔥 Beta`), and `is_bot = true` in `match_players`.
 - Bots are flagged with a 🤖 badge in the Arena UI and leaderboard.
 
@@ -315,6 +316,43 @@ Any authenticated user may watch any PENDING or ACTIVE match without joining as 
 
 - Navigating away emits `spectator:leave` — the server removes the socket from the room.
 - No match records are affected.
+
+---
+
+## 13. Implementation Status (v1.5)
+
+> This section tracks the delta between the GAME.md specification and the current implementation. Updated as iterations land.
+
+### Fully implemented ✅
+
+- Match lifecycle (PENDING → ACTIVE → FINISHED → rewards flow via Kafka)
+- Bot fill on lobby timeout (`LOBBY_TIMEOUT_MS = 30 000 ms`)
+- Bot decision loop — bots submit actions every tick via the full Kafka pipeline
+- Spectator mode — `spectator:join` / `match:synced` push on join
+- Score awarding via `finaliseScores()` at match end
+- `PlayerAttackedEvent` emitted by combat-service (damage calculated, event published)
+- Idempotency on `player_actions` (UNIQUE `action_id` constraint, duplicate detection)
+- Stamp-sealed action tracking (`StampUsedEvent` emitted to Kafka)
+
+### Partially implemented ⚠️
+
+| Feature | Status | Gap |
+|---|---|---|
+| `move` | Recorded + Kafka event | Position **not** updated in DB — `applyMove()` missing |
+| `attack` | `PlayerAttackedEvent` emitted | Damage **not** applied to DB — game-service has no `match-events` consumer |
+| `defend` | Recorded + Kafka event | Shields **not** set — `applyDefend()` missing |
+| `collect` | Recorded + Kafka event | Resources **not** incremented — `applyCollect()` missing |
+| Pre-game movement | Not implemented | Server rejects all actions in PENDING state |
+
+Because the tick loop broadcasts `repo.getPlayers()` and no consumer writes to `match_players`, every tick sends the same initial DB snapshot — characters never move, HP never changes.
+
+### Planned for Iteration 1.6 🔜
+
+- Wire game-engine loop: `applyMove`, `applyDefend`, `applyCollect` on `MatchRepository`
+- Kafka consumer in game-service for `PlayerAttackedEvent` → `repo.applyDamage()`
+- Allow `move` in PENDING state
+- Keyboard controls replacing the on-screen button grid
+- Auto-target for attack (nearest alive enemy by Chebyshev distance)
 
 ---
 

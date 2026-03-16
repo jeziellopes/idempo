@@ -88,18 +88,68 @@ E2E scenario: obtain `accessToken` cookie via `POST /auth/test-token` bypass →
 - [x] Bot strategy — pure-function tactical AI (collect → defend → attack → move priority); 100% unit-testable
 - [x] Bot service — `fillWithBots()` + `tickBots()`; full Kafka pipeline preserved (no shortcut)
 - [x] Game service — lobby timeout fills bots when ≥1 human present; `GET /matches/open` endpoint
-- [x] Spectator WebSocket — `spectator:join` / `spectator:leave`; read-only UI (no ActionPanel)
-- [x] 3-D arena — React Three Fiber canvas; lerp movement; in-world HP bars; death Sparkles; OrbitControls top-down camera with polar clamp; `ssr: false` dynamic import
-- [x] Distributed HUD — collapsible `⚡ Event Stream` panel; last-20 Kafka events; round-trip latency; idempotency duplicate badges
+- [x] Spectator WebSocket — `spectator:join` / `spectator:leave`; `match:synced` push on join; read-only UI
+- [x] 3-D arena — React Three Fiber v9 (React 19 compatible); lerp movement; in-world HP bars; death Sparkles; OrbitControls top-down camera; `ssr: false` dynamic import
+- [x] Distributed HUD — `⚡ Event Stream` panel; last-20 Kafka events; round-trip latency; idempotency duplicate badges
+- [x] Full-screen overlay layout — canvas fills viewport; 4 glass overlay cards; PENDING/FINISHED center overlays
+- [x] Real-time sync fixes — HTTP initial state fetch on Arena mount; `tick` events set status to ACTIVE; server emits `match:synced` to joining clients
+
+**Known gaps (addressed in Iteration 1.6):**
+- ❌ Actions do not update game state — `move` never changes position, `attack` damage is emitted but not applied, `defend`/`collect` have no effect (Kafka pipeline records events but no consumer closes the loop in game-service)
+- ❌ Controls are button-based (D-pad + UUID text field for attack) — not keyboard/mouse driven
+- ❌ No pre-game movement allowed (PENDING state blocks all actions)
 
 **Patterns live:** Rule-based NPC AI · Spectator WebSocket rooms · Three.js R3F in Next.js · Live DS event log  
-**Game state:** ✅ Solo play works · ✅ Any match watchable · ✅ 3-D view with DS HUD
+**Game state:** ✅ Matches run · ✅ Bots tick · ✅ Any match watchable · ✅ 3-D view with DS HUD · ❌ Game state does not change (engine loop incomplete)
 
 **Coverage gate:** 100% on `bot.strategy.ts`; ≥90% on `bot.service.ts`.
 
 **Verification:** `docker compose up -d && nx run e2e:e2e --testFile=iter1b.e2e.ts`
 
-E2E scenario: create match with single player → wait 10 s → assert bot fills slot → assert match transitions to ACTIVE → spectator joins via `GET /matches/open` + WS `spectator:join` → assert state broadcasts received in spectator client.
+E2E scenario: create match with single player → wait 30 s → assert bot fills slot → assert match transitions to ACTIVE → spectator joins via `GET /matches/open` + WS `spectator:join` → assert `match:synced` broadcast received → assert state broadcasts (tick) received in spectator client.
+
+---
+
+## Iteration 1.6 — Game Engine + Keyboard Controls
+
+> **Delivers:** A genuinely playable arena — actions change game state, characters move, take damage, and gain resources. Keyboard-driven controls replace the on-screen button grid.
+
+**Services changed:** Game Service (action processors, PlayerAttackedEvent consumer)  
+**Frontend changed:** Arena UI (keyboard controls, auto-targeting, lobby warmup movement)
+
+### Root cause of the static arena
+
+The Kafka pipeline (idempotency, event routing, audit log) works correctly. However, the **game-service has no consumer** that reads the resulting events and applies them back to player state in the DB. The `match_players` table is never updated beyond the initial insert:
+
+| Action | Kafka event emitted | DB update applied? |
+|---|---|---|
+| `move` | `PlayerActionEvent` → `player-actions` topic | ❌ `position_x/y` never updated |
+| `attack` | → combat-service → `PlayerAttackedEvent` → `match-events` topic | ❌ `applyDamage()` exists but never called |
+| `defend` | `PlayerActionEvent` recorded | ❌ `shields` never set |
+| `collect` | `PlayerActionEvent` recorded | ❌ `resources` never incremented |
+
+Because the tick loop broadcasts `repo.getPlayers()` (reading DB state), and nothing writes to DB, every tick broadcast sends the same initial state.
+
+### What to build
+
+**Backend: close the loop in game-service**
+
+- [ ] `match.repository.ts` — add `applyMove(matchId, playerId, direction)`, `applyDefend(matchId, playerId)`, `applyCollect(matchId, playerId)`
+- [ ] `match.service.ts` — after `insertAction()` + Kafka emit, synchronously apply move/defend/collect to DB (no extra async hop needed for non-combat actions)
+- [ ] `match.service.ts` — allow `move` in PENDING state (pre-game warmup — just expand the status guard)
+- [ ] `match/events.consumer.ts` (NEW) — Kafka consumer on `match-events` topic; handle `PlayerAttackedEvent` → `repo.applyDamage()`; handle `PlayerEliminatedEvent` (future) → mark player `alive=false`
+- [ ] `match.module.ts` — wire the new consumer
+
+**Frontend: keyboard-first controls**
+
+- [ ] `hooks/useArenaControls.ts` (NEW) — `keydown` listener: W/S/A/D or arrows = move, Space = attack nearest alive enemy (auto-target by Chebyshev distance), E = collect, Q = defend, Tab = toggle stamp seal; throttled at 120 ms
+- [ ] `components/arena/Arena.tsx` — replace ActionPanel overlay with compact keyboard legend bar
+- [ ] `components/arena/ActionPanel.tsx` — repurpose as `<StampToggle>` sub-component only
+
+**Patterns live:** Event-driven state projection · Synchronous action resolution · Keyboard game input  
+**Game state:** ✅ All actions update state · ✅ Characters move · ✅ Combat deals damage · ✅ Resources collectible · ✅ Keyboard controls · ✅ Pre-game warmup movement
+
+**Coverage gate:** 100% on `match.service.ts`, `match.repository.ts` (existing gates); ≥90% on new `events.consumer.ts`.
 
 ---
 
