@@ -30,6 +30,9 @@ type MockRepo = {
     | 'findAction'
     | 'updatePlayerPosition'
     | 'applyDamage'
+    | 'applyMove'
+    | 'applyDefend'
+    | 'applyCollect'
     | 'addScore'
     | 'finaliseScores'
     | 'findOpenMatches'
@@ -103,6 +106,9 @@ describe('MatchService', () => {
       findAction: vi.fn().mockResolvedValue(null),
       updatePlayerPosition: vi.fn().mockResolvedValue(undefined),
       applyDamage: vi.fn().mockResolvedValue(makePlayer()),
+      applyMove: vi.fn().mockResolvedValue(true),
+      applyDefend: vi.fn().mockResolvedValue(undefined),
+      applyCollect: vi.fn().mockResolvedValue(10),
       addScore: vi.fn().mockResolvedValue(undefined),
       finaliseScores: vi.fn().mockResolvedValue(undefined),
       findOpenMatches: vi.fn().mockResolvedValue([]),
@@ -200,11 +206,36 @@ describe('MatchService', () => {
       useStamp: false,
     };
 
-    it('throws BadRequestException when match is not ACTIVE', async () => {
+    it('throws BadRequestException for combat actions when match is PENDING', async () => {
       mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
 
       await expect(service.submitAction('match-1', 'player-1', dto))
         .rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException for any action when match is FINISHED', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('FINISHED'));
+
+      await expect(service.submitAction('match-1', 'player-1', dto))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException for any action when match is CANCELLED', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('CANCELLED'));
+
+      const moveDto: SubmitActionDto = { actionId: 'a2', actionType: 'move', payload: { direction: 'north' } };
+      await expect(service.submitAction('match-1', 'player-1', moveDto))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a move action while the match is PENDING (pre-game warmup)', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('PENDING'));
+      const moveDto: SubmitActionDto = { actionId: 'a3', actionType: 'move', payload: { direction: 'north' } };
+
+      const result = await service.submitAction('match-1', 'player-1', moveDto);
+
+      expect(result).toEqual({ accepted: true, duplicate: false });
+      expect(mockRepo.applyMove).toHaveBeenCalledWith('match-1', 'player-1', 'north');
     });
 
     it('returns { accepted:true, duplicate:true } when insertAction returns false', async () => {
@@ -255,6 +286,34 @@ describe('MatchService', () => {
       expect(mockKafka.send).toHaveBeenCalledOnce();
       const [, msg] = mockKafka.send.mock.calls[0]!;
       expect(msg.value.useStamp).toBe(false);
+    });
+
+    it('calls applyDefend when actionType is defend', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+      const defendDto: SubmitActionDto = { actionId: 'a4', actionType: 'defend', payload: {} };
+
+      await service.submitAction('match-1', 'player-1', defendDto);
+
+      expect(mockRepo.applyDefend).toHaveBeenCalledWith('match-1', 'player-1');
+    });
+
+    it('calls applyCollect when actionType is collect', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+      const collectDto: SubmitActionDto = { actionId: 'a5', actionType: 'collect', payload: {} };
+
+      await service.submitAction('match-1', 'player-1', collectDto);
+
+      expect(mockRepo.applyCollect).toHaveBeenCalledWith('match-1', 'player-1');
+    });
+
+    it('does not call any apply method for attack (handled by PlayerAttackedEvent consumer)', async () => {
+      mockRepo.findMatch.mockResolvedValue(makeMatch('ACTIVE'));
+
+      await service.submitAction('match-1', 'player-1', dto);
+
+      expect(mockRepo.applyMove).not.toHaveBeenCalled();
+      expect(mockRepo.applyDefend).not.toHaveBeenCalled();
+      expect(mockRepo.applyCollect).not.toHaveBeenCalled();
     });
   });
 

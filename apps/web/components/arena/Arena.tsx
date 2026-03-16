@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useMatchStore } from '../../store/match.store';
 import { useMatchSocket } from '../../hooks/useMatchSocket';
-import { ActionPanel } from './ActionPanel';
+import { useArenaControls } from '../../hooks/useArenaControls';
 import { DistributedHUD } from './DistributedHUD';
 import { api } from '../../lib/api';
 
@@ -23,6 +23,7 @@ interface Props {
 export function Arena({ matchId, spectate = false }: Props) {
   const { playerId, status, players, lastWinnerId, stampBalance, hydrate, isSpectator, setSpectator, setMatch, hydrateMatch } = useMatchStore();
   useMatchSocket(matchId);
+  const { stampActive } = useArenaControls(spectate ? null : matchId);
 
   useEffect(() => {
     if (spectate) {
@@ -100,10 +101,16 @@ export function Arena({ matchId, spectate = false }: Props) {
           )}
         </div>
 
-        {/* Bottom-center — action panel (players only) */}
-        {!activeIsSpectator && playerId && status === 'ACTIVE' && (
-          <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 ${CARD}`}>
-            <ActionPanel matchId={matchId} disabled={status !== 'ACTIVE'} />
+        {/* Bottom-center — keyboard controls legend (players only) */}
+        {!activeIsSpectator && playerId && (status === 'ACTIVE' || status === 'PENDING') && (
+          <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 flex items-center gap-4 text-xs pointer-events-auto ${CARD}`}>
+            <span className="text-gray-500">WASD <span className="text-gray-300">Move</span></span>
+            <span className="text-gray-500">Space <span className="text-gray-300">Attack</span></span>
+            <span className="text-gray-500">E <span className="text-gray-300">Collect</span></span>
+            <span className="text-gray-500">Q <span className="text-gray-300">Defend</span></span>
+            <span className={`transition-colors ${stampActive ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>
+              Tab 🔖 {stampBalance}{stampActive ? ' ON' : ''}
+            </span>
           </div>
         )}
 
@@ -117,7 +124,7 @@ export function Arena({ matchId, spectate = false }: Props) {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className={`px-8 py-6 text-center space-y-1 ${CARD}`}>
               <p className="text-yellow-300 font-semibold text-lg">Waiting for players…</p>
-              <p className="text-gray-500 text-sm">Match starts when full · bots fill after 10 s</p>
+              <p className="text-gray-500 text-sm">Match starts when full · bots fill after 30 s</p>
             </div>
           </div>
         )}

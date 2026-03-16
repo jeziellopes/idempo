@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type pg from 'pg';
 import { DATABASE_POOL } from '../database/database.module.js';
-import type { Match, MatchPlayer, PlayerAction, ActionType } from './match.types.js';
+import type { Match, MatchPlayer, PlayerAction, ActionType, Direction } from './match.types.js';
+import { DEFAULT_TILE_MAP } from '../bot/bot.strategy.js';
 
 @Injectable()
 export class MatchRepository {
@@ -114,6 +115,74 @@ export class MatchRepository {
        WHERE match_id = $3 AND player_id = $4`,
       [x, y, matchId, playerId],
     );
+  }
+
+  /**
+   * Moves a player one tile in the given direction.
+   * Clamps to arena bounds and ignores the move if the target tile is a wall
+   * or the player is not alive. Returns false when the move was blocked.
+   */
+  async applyMove(matchId: string, playerId: string, direction: Direction): Promise<boolean> {
+    const { rows } = await this.pool.query<{ position_x: number; position_y: number; alive: boolean }>(
+      `SELECT position_x, position_y, alive FROM match_players WHERE match_id = $1 AND player_id = $2`,
+      [matchId, playerId],
+    );
+    const row = rows[0];
+    if (!row || !row.alive) return false;
+
+    const delta: Record<Direction, { x: number; y: number }> = {
+      north: { x: 0, y: -1 },
+      south: { x: 0, y: 1 },
+      east:  { x: 1, y: 0 },
+      west:  { x: -1, y: 0 },
+    };
+    const d = delta[direction];
+    const nx = Math.max(0, Math.min(9, row.position_x + d.x));
+    const ny = Math.max(0, Math.min(9, row.position_y + d.y));
+
+    /* v8 ignore next -- DEFAULT_TILE_MAP always covers [0-9][0-9] */
+    if (DEFAULT_TILE_MAP[ny]?.[nx] === 'wall') return false;
+
+    await this.updatePlayerPosition(matchId, playerId, nx, ny);
+    return true;
+  }
+
+  /**
+   * Increases the player's shields by 10, capped at 50.
+   * No-ops on dead players.
+   */
+  async applyDefend(matchId: string, playerId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE match_players
+       SET shields = LEAST(50, shields + 10)
+       WHERE match_id = $1 AND player_id = $2 AND alive = true`,
+      [matchId, playerId],
+    );
+  }
+
+  /**
+   * Awards resources to a player if they are standing on a resource_node tile.
+   * Returns the amount gained (0 when off-node or player is dead).
+   */
+  async applyCollect(matchId: string, playerId: string): Promise<number> {
+    const { rows } = await this.pool.query<{ position_x: number; position_y: number; alive: boolean }>(
+      `SELECT position_x, position_y, alive FROM match_players WHERE match_id = $1 AND player_id = $2`,
+      [matchId, playerId],
+    );
+    const row = rows[0];
+    if (!row || !row.alive) return 0;
+
+    /* v8 ignore next -- DEFAULT_TILE_MAP always covers [0-9][0-9] */
+    const tile = DEFAULT_TILE_MAP[row.position_y]?.[row.position_x];
+    if (tile !== 'resource_node') return 0;
+
+    const gain = Math.floor(50 + Math.random() * 100);
+    await this.pool.query(
+      `UPDATE match_players SET resources = resources + $1
+       WHERE match_id = $2 AND player_id = $3`,
+      [gain, matchId, playerId],
+    );
+    return gain;
   }
 
   async applyDamage(matchId: string, targetId: string, damage: number): Promise<MatchPlayer> {

@@ -17,6 +17,7 @@ import {
   MATCH_DURATION_MS,
   TICK_INTERVAL_MS,
   type ActionType,
+  type Direction,
   type Match,
   type MatchPlayer,
 } from './match.types.js';
@@ -124,8 +125,13 @@ export class MatchService {
     dto: SubmitActionDto,
   ): Promise<{ accepted: boolean; duplicate: boolean }> {
     const match = await this._requireMatch(matchId);
-    if (match.status !== 'ACTIVE') {
-      throw new BadRequestException('Match is not ACTIVE');
+
+    // Allow 'move' in PENDING (pre-game warmup); block everything when FINISHED/CANCELLED
+    if (match.status === 'FINISHED' || match.status === 'CANCELLED') {
+      throw new BadRequestException(`Cannot submit actions in ${match.status} match`);
+    }
+    if (match.status === 'PENDING' && dto.actionType !== 'move') {
+      throw new BadRequestException('Combat actions require an ACTIVE match');
     }
 
     // Idempotency: attempt insert — returns false if duplicate
@@ -142,7 +148,7 @@ export class MatchService {
       return { accepted: true, duplicate: true };
     }
 
-    // Emit to Kafka for Combat Service to process
+    // Emit to Kafka for Combat Service to process (attack) or for audit trail (others)
     const kafkaEventId = uuidv4();
     await this.kafka.send(TOPICS.PLAYER_ACTIONS, {
       key: matchId,
@@ -161,6 +167,25 @@ export class MatchService {
         timestamp: new Date().toISOString(),
       },
     });
+
+    // Apply game-state changes synchronously for non-attack actions.
+    // 'attack' damage is applied asynchronously by the MatchEventsConsumerService
+    // once combat-service emits a PlayerAttackedEvent.
+    switch (dto.actionType) {
+      case 'move': {
+        const direction = dto.payload['direction'] as Direction | undefined;
+        if (direction) await this.repo.applyMove(matchId, playerId, direction);
+        break;
+      }
+      case 'defend':
+        await this.repo.applyDefend(matchId, playerId);
+        break;
+      case 'collect':
+        await this.repo.applyCollect(matchId, playerId);
+        break;
+      default:
+        break;
+    }
 
     // Notify connected clients so the HUD shows the event in real time
     this.gateway.broadcastMatchState(matchId, { event: 'action:accepted' }, {
