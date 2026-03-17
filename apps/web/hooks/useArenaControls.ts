@@ -3,10 +3,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useMatchStore } from '../store/match.store';
 import { api } from '../lib/api';
+import type { Direction } from '../lib/arena-tiles';
 
 const THROTTLE_MS = 120;
-
-type Direction = 'north' | 'south' | 'east' | 'west';
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   w: 'north', W: 'north', ArrowUp: 'north',
@@ -34,7 +33,7 @@ interface ArenaControlsState {
  *   Tab   — toggle Stamp seal for the next action
  */
 export function useArenaControls(matchId: string | null): ArenaControlsState {
-  const { playerId, spendStamp } = useMatchStore();
+  const { playerId, spendStamp, predictMove } = useMatchStore();
   const [stampActive, setStampActive] = useState(false);
 
   // Keep a ref in sync so async callbacks read the latest value without stale closures
@@ -58,7 +57,7 @@ export function useArenaControls(matchId: string | null): ArenaControlsState {
         await api.submitAction(matchId, actionType, payload, actionId, useStamp);
         if (useStamp) setStampActive(false);
       } catch {
-        // Non-critical — tick will reconcile state
+        // Non-critical — server state will reconcile on next tick (or stays predicted if offline)
       }
     },
     [matchId, playerId, spendStamp],
@@ -94,6 +93,9 @@ export function useArenaControls(matchId: string | null): ArenaControlsState {
       const direction = KEY_TO_DIRECTION[e.key];
       if (direction) {
         lastActionRef.current = now;
+        // Optimistic update: move locally before the server confirms.
+        // The next tick reconciles authoritative state; if offline, stays predicted.
+        if (playerId) predictMove(playerId, direction);
         void submitAction('move', { direction });
         return;
       }
@@ -141,7 +143,7 @@ export function useArenaControls(matchId: string | null): ArenaControlsState {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [matchId, playerId, submitAction]);
+  }, [matchId, playerId, submitAction, predictMove]);
 
   return { stampActive };
 }

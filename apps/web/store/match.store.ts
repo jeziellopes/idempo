@@ -1,5 +1,6 @@
 'use client';
 import { create } from 'zustand';
+import { applyMoveLocally, type Direction } from '../lib/arena-tiles';
 
 export type MatchStatus = 'idle' | 'PENDING' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
 
@@ -48,6 +49,12 @@ interface MatchStore {
   spendStamp: () => boolean;
   setWinner: (winnerId: string) => void;
   addEvent: (entry: EventLogEntry) => void;
+  /**
+   * Optimistically move the local player one tile without waiting for a server round-trip.
+   * Applies the same wall/bounds rules as the server. The next server tick will reconcile
+   * the authoritative position; if the server is unreachable the predicted position stays.
+   */
+  predictMove: (playerId: string, direction: Direction) => void;
   reset: () => void;
 }
 
@@ -95,6 +102,15 @@ export const useMatchStore = create<MatchStore>((set, get) => ({
   addEvent: (entry) =>
     set((state) => ({
       recentEvents: [entry, ...state.recentEvents].slice(0, 20),
+    })),
+
+  predictMove: (playerId, direction) =>
+    set((state) => ({
+      players: state.players.map((p) =>
+        p.playerId === playerId
+          ? { ...p, position: applyMoveLocally(p.position, direction) }
+          : p,
+      ),
     })),
 
   reset: () =>

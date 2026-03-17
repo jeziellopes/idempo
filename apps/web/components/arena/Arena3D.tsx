@@ -19,23 +19,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Sparkles, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMatchStore, type PlayerState } from '../../store/match.store';
-
-// ─── Tile map ─────────────────────────────────────────────────────────────────
-
-type TileType = 'empty' | 'resource_node' | 'wall';
-
-const DEFAULT_TILES: TileType[][] = [
-  ['empty','empty','empty','empty','resource_node','empty','empty','empty','empty','empty'],
-  ['empty','wall', 'wall', 'empty','empty',        'empty','empty','wall', 'wall', 'empty'],
-  ['empty','wall', 'empty','empty','empty',        'empty','empty','empty','wall', 'empty'],
-  ['empty','empty','empty','empty','resource_node','empty','empty','empty','empty','empty'],
-  ['resource_node','empty','empty','resource_node','empty','empty','resource_node','empty','empty','resource_node'],
-  ['empty','empty','empty','empty','resource_node','empty','empty','empty','empty','empty'],
-  ['empty','empty','empty','empty','empty',        'empty','empty','empty','empty','empty'],
-  ['empty','wall', 'empty','empty','empty',        'empty','empty','empty','wall', 'empty'],
-  ['empty','wall', 'wall', 'empty','empty',        'empty','empty','wall', 'wall', 'empty'],
-  ['empty','empty','empty','empty','resource_node','empty','empty','empty','empty','empty'],
-];
+import { ARENA_TILES, type TileType } from '../../lib/arena-tiles';
 
 const TILE_COLORS: Record<TileType, string> = {
   empty: '#1a1f2e',
@@ -53,7 +37,7 @@ function gridToWorld(col: number, row: number): [number, number] {
 function TileGrid() {
   return (
     <>
-      {DEFAULT_TILES.map((row, ri) =>
+      {ARENA_TILES.map((row, ri) =>
         row.map((tile, ci) => {
           const [wx, wz] = gridToWorld(ci, ri);
           const isWall = tile === 'wall';
