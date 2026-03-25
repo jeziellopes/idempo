@@ -22,6 +22,7 @@ CREATE TABLE match_players (
   alive        BOOLEAN NOT NULL DEFAULT true,
   team         SMALLINT,
   final_score  INT NOT NULL DEFAULT 0,
+  is_bot       BOOLEAN NOT NULL DEFAULT false,
   PRIMARY KEY (match_id, player_id)
 );
 
@@ -38,3 +39,4 @@ CREATE TABLE player_actions (
 CREATE INDEX idx_player_actions_match ON player_actions (match_id);
 CREATE INDEX idx_player_actions_player ON player_actions (player_id);
 CREATE INDEX idx_match_players_player ON match_players (player_id);
+CREATE INDEX idx_matches_status ON matches (status);

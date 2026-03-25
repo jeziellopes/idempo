@@ -468,6 +468,9 @@ services:
       # Server-side only — used by next.config rewrites() to proxy /api/* to the
       # API gateway. Not exposed to the browser (no NEXT_PUBLIC_ prefix).
       API_GATEWAY_URL: http://api-gateway:3001
+      # Direct connection from browser to game-service WebSocket (bypasses API gateway).
+      # Not prefixed with NEXT_PUBLIC_ — fetched at request time via GET /api/config.
+      GAME_SERVICE_URL: http://localhost:3002
     depends_on:
       api-gateway:
         condition: service_healthy

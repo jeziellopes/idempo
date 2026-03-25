@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type pg from 'pg';
 import { DATABASE_POOL } from '../database/database.module.js';
-import type { Match, MatchPlayer, PlayerAction, ActionType } from './match.types.js';
+import type { Match, MatchPlayer, PlayerAction, ActionType, Direction } from './match.types.js';
+import { DEFAULT_TILE_MAP } from '../bot/bot.strategy.js';
 
 @Injectable()
 export class MatchRepository {
@@ -31,13 +32,13 @@ export class MatchRepository {
     return Number(rows[0]?.count ?? 0);
   }
 
-  async addPlayer(matchId: string, playerId: string, username: string, x: number, y: number): Promise<void> {
+  async addPlayer(matchId: string, playerId: string, username: string, x: number, y: number, isBot = false): Promise<void> {
     await this.pool.query(
       `INSERT INTO match_players
-         (match_id, player_id, username, hp, score, resources, shields, position_x, position_y, alive)
-       VALUES ($1, $2, $3, 100, 0, 0, 0, $4, $5, true)
+         (match_id, player_id, username, hp, score, resources, shields, position_x, position_y, alive, is_bot)
+       VALUES ($1, $2, $3, 100, 0, 0, 0, $4, $5, true, $6)
        ON CONFLICT (match_id, player_id) DO NOTHING`,
-      [matchId, playerId, username, x, y],
+      [matchId, playerId, username, x, y, isBot],
     );
   }
 
@@ -46,7 +47,7 @@ export class MatchRepository {
       `SELECT match_id AS "matchId", player_id AS "playerId", username,
               hp, score, resources, shields,
               position_x AS "positionX", position_y AS "positionY",
-              alive, team, final_score AS "finalScore"
+              alive, team, final_score AS "finalScore", is_bot AS "isBot"
        FROM match_players WHERE match_id = $1`,
       [matchId],
     );
@@ -116,6 +117,74 @@ export class MatchRepository {
     );
   }
 
+  /**
+   * Moves a player one tile in the given direction.
+   * Clamps to arena bounds and ignores the move if the target tile is a wall
+   * or the player is not alive. Returns false when the move was blocked.
+   */
+  async applyMove(matchId: string, playerId: string, direction: Direction): Promise<boolean> {
+    const { rows } = await this.pool.query<{ position_x: number; position_y: number; alive: boolean }>(
+      `SELECT position_x, position_y, alive FROM match_players WHERE match_id = $1 AND player_id = $2`,
+      [matchId, playerId],
+    );
+    const row = rows[0];
+    if (!row || !row.alive) return false;
+
+    const delta: Record<Direction, { x: number; y: number }> = {
+      north: { x: 0, y: -1 },
+      south: { x: 0, y: 1 },
+      east:  { x: 1, y: 0 },
+      west:  { x: -1, y: 0 },
+    };
+    const d = delta[direction];
+    const nx = Math.max(0, Math.min(9, row.position_x + d.x));
+    const ny = Math.max(0, Math.min(9, row.position_y + d.y));
+
+    /* v8 ignore next -- DEFAULT_TILE_MAP always covers [0-9][0-9] */
+    if (DEFAULT_TILE_MAP[ny]?.[nx] === 'wall') return false;
+
+    await this.updatePlayerPosition(matchId, playerId, nx, ny);
+    return true;
+  }
+
+  /**
+   * Increases the player's shields by 10, capped at 50.
+   * No-ops on dead players.
+   */
+  async applyDefend(matchId: string, playerId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE match_players
+       SET shields = LEAST(50, shields + 10)
+       WHERE match_id = $1 AND player_id = $2 AND alive = true`,
+      [matchId, playerId],
+    );
+  }
+
+  /**
+   * Awards resources to a player if they are standing on a resource_node tile.
+   * Returns the amount gained (0 when off-node or player is dead).
+   */
+  async applyCollect(matchId: string, playerId: string): Promise<number> {
+    const { rows } = await this.pool.query<{ position_x: number; position_y: number; alive: boolean }>(
+      `SELECT position_x, position_y, alive FROM match_players WHERE match_id = $1 AND player_id = $2`,
+      [matchId, playerId],
+    );
+    const row = rows[0];
+    if (!row || !row.alive) return 0;
+
+    /* v8 ignore next -- DEFAULT_TILE_MAP always covers [0-9][0-9] */
+    const tile = DEFAULT_TILE_MAP[row.position_y]?.[row.position_x];
+    if (tile !== 'resource_node') return 0;
+
+    const gain = Math.floor(50 + Math.random() * 100);
+    await this.pool.query(
+      `UPDATE match_players SET resources = resources + $1
+       WHERE match_id = $2 AND player_id = $3`,
+      [gain, matchId, playerId],
+    );
+    return gain;
+  }
+
   async applyDamage(matchId: string, targetId: string, damage: number): Promise<MatchPlayer> {
     const { rows } = await this.pool.query<MatchPlayer>(
       `UPDATE match_players
@@ -142,5 +211,21 @@ export class MatchRepository {
       `UPDATE match_players SET final_score = score WHERE match_id = $1`,
       [matchId],
     );
+  }
+
+  async findOpenMatches(): Promise<Array<{ id: string; status: string; playerCount: number; hasBots: boolean }>> {
+    const { rows } = await this.pool.query<{ id: string; status: string; playerCount: string; hasBots: boolean }>(
+      `SELECT m.id,
+              m.status,
+              COUNT(mp.player_id)::text AS "playerCount",
+              BOOL_OR(mp.is_bot) AS "hasBots"
+       FROM matches m
+       LEFT JOIN match_players mp ON mp.match_id = m.id
+       WHERE m.status IN ('PENDING', 'ACTIVE')
+       GROUP BY m.id, m.status
+       ORDER BY m.created_at DESC
+       LIMIT 20`,
+    );
+    return rows.map((r) => ({ ...r, playerCount: Number(r.playerCount) }));
   }
 }

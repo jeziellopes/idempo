@@ -124,11 +124,13 @@ graph TB
 
 | Attribute | Detail |
 |---|---|
-| Responsibility | Match lifecycle, player action validation, event emission |
+| Responsibility | Match lifecycle, player action validation, event emission, NPC bot tick loop |
 | Consumes | `player-actions` topic |
 | Produces | `match-events` (MatchStartedEvent, MatchFinishedEvent) |
 | Idempotency | `UNIQUE(action_id)` in `player_actions` table |
 | Database | PostgreSQL — `game_db` |
+| New endpoints | `GET /matches/open` — returns up to 20 PENDING/ACTIVE matches for spectator discovery |
+| New service | `BotService` — `fillWithBots()` + `tickBots()`; forwardRef circular dep with MatchService; bot actions use full Kafka pipeline |
 
 ---
 
@@ -688,9 +690,10 @@ An Admin UI (React + custom consumer) allows inspection and manual replay.
 | Tool | Purpose |
 |---|---|
 | Next.js 16 (App Router) | UI + SSR |
-| WebSocket (`socket.io-client`) | Real-time arena |
+| WebSocket (`socket.io-client`) | Real-time arena + spectator |
 | shadcn/ui + Tailwind CSS v4 | Component library |
 | Zustand | Client state |
+| Three.js 0.172 + `@react-three/fiber` 8 + `@react-three/drei` 9 | 3-D arena canvas (dynamically imported SSR=false) |
 
 ### Backend
 

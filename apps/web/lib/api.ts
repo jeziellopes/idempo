@@ -63,6 +63,21 @@ export interface LeaderboardResponse {
   meta: { stale: boolean; count: number };
 }
 
+export interface MatchStateDto {
+  matchId: string;
+  status: string;
+  startedAt: string | null;
+  players: Array<{
+    playerId: string;
+    username: string;
+    hp: number;
+    score: number;
+    resources: number;
+    position: { x: number; y: number };
+    alive: boolean;
+  }>;
+}
+
 export const api = {
   /**
    * Returns the current user's identity from the access token cookie.
@@ -98,4 +113,9 @@ export const api = {
     }),
 
   getLeaderboard: () => request<LeaderboardResponse>('/leaderboard'),
+
+  getOpenMatches: () =>
+    request<Array<{ id: string; status: string; playerCount: number; hasBots: boolean }>>('/matches/open'),
+
+  getMatch: (matchId: string) => request<MatchStateDto>(`/matches/${matchId}`),
 };

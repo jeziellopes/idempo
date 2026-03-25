@@ -142,10 +142,13 @@ This project exists to solve these problems in a realistic context, not as a toy
 | ID | Story | Acceptance Criteria |
 |---|---|---|
 | US-01 | As a player, I want to join a match so I can compete | Match created, player assigned, WebSocket connection established |
+| US-01b | As a solo player, I want to play even without another human online | After 10 s bot-fill delay, NPC bot joins; match starts; bot takes actions each tick via Kafka |
+| US-01c | As a spectator, I want to watch any live match without joining as a player | `GET /matches/open` lists live matches; `spectator:join` WS grants read-only state stream; ActionPanel hidden |
 | US-02 | As a player, I want to attack an opponent so I can deal damage | Damage calculated, event emitted; duplicate attack (same `actionId`) has no second effect |
 | US-02b | As a player, I want to spend a Stamp to seal my action so it resolves exactly once even under lag | Sealed action stored with stamp UUID as `action_id`; duplicate submission returns original response; stamp balance decremented exactly once |
 | US-03 | As a match winner, I want to receive rewards automatically | `MatchFinishedEvent` triggers `RewardGrantedEvent`; wallet and inventory updated exactly once |
 | US-04 | As a player, I want to see live rankings during and after a match | Leaderboard reflects current scores; stale cache served if DB is slow |
+| US-13 | As a player/spectator, I want to see the live Kafka event stream so I can understand distributed systems | DistributedHUD panel shows last 20 events with type, correlation ID, latency, duplicate/stamp badges |
 
 ### Economy Phase
 
@@ -171,7 +174,11 @@ This project exists to solve these problems in a realistic context, not as a toy
 
 ### v1.0 (This Release)
 
-- Arena match lifecycle (2–6 players, 3–5 min rounds, grid-based)
+- Arena match lifecycle (1–6 players, 3–5 min rounds, grid-based)
+- **NPC bot fill** — rule-based tactical bots fill empty seats after 10 s; full Kafka pipeline preserved
+- **Spectator mode** — any user can watch any live match read-only via `GET /matches/open` + WS
+- **3-D arena view** — React Three Fiber canvas with OrbitControls, lerp movement, in-world HP bars
+- **Distributed HUD** — collapsible event stream panel showing live Kafka events with latency and idempotency badges
 - Player actions: attack, defend, collect resources
 - idempo Stamps — scarce token earned as match reward; spent in-arena to seal actions with an exactly-once guarantee
 - Post-match reward grants (currency + items + Stamps)
@@ -205,7 +212,7 @@ This project exists to solve these problems in a realistic context, not as a toy
 - No anti-cheat system
 - No GDPR / data retention compliance in v1
 - No mobile-native client (web only)
-- No ML/AI opponents (all player-vs-player)
+- No ML/AI opponents — rule-based tactical bots are **in scope**; machine-learning models are deferred post-v1
 
 ---
 

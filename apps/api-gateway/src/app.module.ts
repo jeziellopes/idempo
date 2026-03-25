@@ -17,7 +17,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
       validationSchema: envValidationSchema,
     }),
     // Rate limiting: 60 requests / 60 s per IP
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 600 }]),
     AuthModule,
     HealthModule,
     ProxyModule,

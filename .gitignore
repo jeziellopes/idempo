@@ -38,3 +38,7 @@ Thumbs.db
 
 # Docker volumes (local data)
 infra/data/
+
+# AI Workflows
+.agents
+skills-lock.json

@@ -239,4 +239,155 @@ describe('MatchRepository', () => {
       expect(sql).toContain('final_score = score');
     });
   });
+
+  // ── applyMove ────────────────────────────────────────────────────────────────
+
+  describe('applyMove()', () => {
+    it('updates position when moving to a valid empty tile', async () => {
+      // Player at (3, 0) moves south → (3, 1) — empty tile
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ position_x: 3, position_y: 0, alive: true }] })
+        .mockResolvedValueOnce({ rows: [] }); // updatePlayerPosition
+
+      const result = await repo.applyMove('match-1', 'player-1', 'south');
+
+      expect(result).toBe(true);
+      const [, params] = mockQuery.mock.calls[1] as [string, unknown[]];
+      expect(params).toContain(3); // nx
+      expect(params).toContain(1); // ny
+    });
+
+    it('returns false and skips update when moving into a wall', async () => {
+      // Player at (0, 1) moves east → (1, 1) — wall tile
+      mockQuery.mockResolvedValueOnce({ rows: [{ position_x: 0, position_y: 1, alive: true }] });
+
+      const result = await repo.applyMove('match-1', 'player-1', 'east');
+
+      expect(result).toBe(false);
+      expect(mockQuery).toHaveBeenCalledOnce(); // no UPDATE call
+    });
+
+    it('clamps to arena bounds (north from row 0 stays at row 0)', async () => {
+      // Player at (0, 0) moves north → clamps to (0, 0) — empty tile
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ position_x: 0, position_y: 0, alive: true }] })
+        .mockResolvedValueOnce({ rows: [] }); // updatePlayerPosition — same cell
+
+      const result = await repo.applyMove('match-1', 'player-1', 'north');
+
+      expect(result).toBe(true);
+      const [, params] = mockQuery.mock.calls[1] as [string, unknown[]];
+      expect(params).toContain(0); // nx stays 0
+    });
+
+    it('returns false when player is dead', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ position_x: 3, position_y: 0, alive: false }] });
+
+      const result = await repo.applyMove('match-1', 'player-1', 'south');
+
+      expect(result).toBe(false);
+      expect(mockQuery).toHaveBeenCalledOnce();
+    });
+
+    it('returns false when player is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const result = await repo.applyMove('match-1', 'ghost', 'east');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // ── applyDefend ──────────────────────────────────────────────────────────────
+
+  describe('applyDefend()', () => {
+    it('issues UPDATE with LEAST(50, shields + 10) for alive players', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.applyDefend('match-1', 'player-1');
+
+      expect(mockQuery).toHaveBeenCalledOnce();
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('LEAST(50, shields + 10)');
+      expect(params).toContain('match-1');
+      expect(params).toContain('player-1');
+    });
+
+    it('includes alive = true filter so dead players are unaffected', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      await repo.applyDefend('match-1', 'player-1');
+
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain('alive = true');
+    });
+  });
+
+  // ── applyCollect ─────────────────────────────────────────────────────────────
+
+  describe('applyCollect()', () => {
+    it('returns a positive gain and updates resources when on a resource_node tile', async () => {
+      // Position (0, 4) → DEFAULT_TILE_MAP[4][0] = 'resource_node'
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ position_x: 0, position_y: 4, alive: true }] })
+        .mockResolvedValueOnce({ rows: [] }); // UPDATE resources
+
+      const gain = await repo.applyCollect('match-1', 'player-1');
+
+      expect(gain).toBeGreaterThanOrEqual(50);
+      expect(gain).toBeLessThan(150);
+      const [sql] = mockQuery.mock.calls[1] as [string, unknown[]];
+      expect(sql).toContain('resources = resources + $1');
+    });
+
+    it('returns 0 and skips update when not on a resource_node tile', async () => {
+      // Position (0, 0) → empty tile
+      mockQuery.mockResolvedValueOnce({ rows: [{ position_x: 0, position_y: 0, alive: true }] });
+
+      const gain = await repo.applyCollect('match-1', 'player-1');
+
+      expect(gain).toBe(0);
+      expect(mockQuery).toHaveBeenCalledOnce();
+    });
+
+    it('returns 0 when player is dead', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ position_x: 0, position_y: 4, alive: false }] });
+
+      const gain = await repo.applyCollect('match-1', 'player-1');
+
+      expect(gain).toBe(0);
+      expect(mockQuery).toHaveBeenCalledOnce();
+    });
+
+    it('returns 0 when player is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const gain = await repo.applyCollect('match-1', 'ghost');
+
+      expect(gain).toBe(0);
+    });
+  });
+
+  describe('findOpenMatches()', () => {
+    it('returns mapped open matches with playerCount cast to number', async () => {
+      mockQuery.mockResolvedValue({
+        rows: [{ id: 'match-1', status: 'ACTIVE', playerCount: '3', hasBots: true }],
+      });
+
+      const result = await repo.findOpenMatches();
+
+      expect(result).toEqual([{ id: 'match-1', status: 'ACTIVE', playerCount: 3, hasBots: true }]);
+      const sql: string = mockQuery.mock.calls[0]![0];
+      expect(sql).toContain('PENDING');
+      expect(sql).toContain('ACTIVE');
+    });
+
+    it('returns empty array when no open matches exist', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      const result = await repo.findOpenMatches();
+
+      expect(result).toEqual([]);
+    });
+  });
 });

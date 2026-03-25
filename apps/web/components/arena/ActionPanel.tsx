@@ -46,8 +46,8 @@ export function ActionPanel({ matchId, disabled = false }: Props) {
     `px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-40 ${color}`;
 
   return (
-    <div className="space-y-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Actions</h3>
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</h3>
 
       {/* Movement */}
       <div>
